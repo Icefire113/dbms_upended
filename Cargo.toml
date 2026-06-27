@@ -1,0 +1,15 @@
+[package]
+name = "dbms_upended"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = { version = "1.0.103", features = ["backtrace"] }
+strum = { version = "0.28.0", features = ["derive"] }
+thiserror = "2.0.18"
+log = { version = "0.4.32", features = ["std"] }
+env_logger = { version = "0.11.10" }
+clap = { version = "4.6.1", features = ["env", "cargo", "derive"] }
+
+[profile.release]
+debug = true

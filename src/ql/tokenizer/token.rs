@@ -1,0 +1,195 @@
+use std::fmt::Display;
+
+use strum::EnumIter;
+
+/// Represents the type of token
+#[derive(Debug, PartialEq, Clone)]
+pub enum TokenType {
+    /// A literal value
+    Literal(LiteralToken),
+    /// Something like a table or column name
+    Identifier(String),
+    /// Something like a table or column name (but in quotes)
+    QuotedIdentifier(String),
+    /// Something like an `=` sign
+    Operator(Operator),
+    /// An important keyword like `SELECT`, `FROM`, etc
+    Keyword(Keyword),
+
+    // Grammars
+    LParen,
+    RParen,
+    Comma,
+    SemiColon,
+
+    /// An illegal/ unexpected token at position `pos`, contains the position
+    Illegal(u64),
+    /// A token that we don't recognize, contanins the position
+    Unknown(u64),
+}
+
+/// Represents an operator
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum Operator {
+    Equals,
+    NotEq,
+    Lt,
+    Lte,
+    Gt,
+    Gte,
+    Plus,
+    Minus,
+    Star,
+    Divide,
+    Modulus,
+}
+
+/// Gets the binding power of a given token, used for pratt parsing
+pub fn get_token_bp(op: &TokenType) -> Option<(u8, u8)> {
+    match op {
+        TokenType::Operator(op) => match op {
+            Operator::Equals | Operator::NotEq => Some((5, 6)),
+            Operator::Lt | Operator::Lte | Operator::Gt | Operator::Gte => Some((7, 8)),
+            Operator::Plus | Operator::Minus => Some((9, 10)),
+            Operator::Star | Operator::Divide | Operator::Modulus => Some((11, 12)),
+        },
+        TokenType::Keyword(Keyword::Or) => Some((1, 2)),
+        TokenType::Keyword(Keyword::And) => Some((3, 4)),
+        _ => None,
+    }
+}
+
+/// Gets the prefix binding power, used for pratt parsing
+pub fn get_prefix_bp(tok: &TokenType) -> Option<u8> {
+    match tok {
+        TokenType::Operator(Operator::Minus) | TokenType::Keyword(Keyword::Not) => Some(13),
+        _ => None,
+    }
+}
+
+/// Represents a literal value token
+#[derive(Debug, PartialEq, Clone)]
+pub enum LiteralToken {
+    Int(i32),
+    BigInt(i64),
+    Float(f32),
+    String(String),
+}
+
+/// Represents an important keyword that we should recognize
+#[derive(Debug, PartialEq, EnumIter, Clone, Copy)]
+pub enum Keyword {
+    Create,
+    Select,
+    From,
+    Where,
+    Insert,
+    Into,
+    Values,
+    Update,
+    Delete,
+    Set,
+    Alter,
+    Add,
+    Drop,
+    Table,
+    Column,
+    Database,
+    Use,
+    // type keywords
+    Int,
+    Float,
+    Varchar,
+    Char,
+    // Logical operator keywords
+    All,
+    And,
+    Any,
+    Between,
+    Exists,
+    Not,
+    Or,
+    Some,
+    False,
+    True,
+    Null,
+    Is,
+    Left,
+    Right,
+    Outer,
+    Join,
+    Inner,
+    On,
+    Load,
+    Data,
+    InFile,
+    Index,
+}
+
+impl Display for Keyword {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            Self::Create => "CREATE",
+            Self::Select => "SELECT",
+            Self::From => "FROM",
+            Self::Where => "WHERE",
+            Self::Insert => "INSERT",
+            Self::Into => "INTO",
+            Self::Values => "VALUES",
+            Self::Update => "UPDATE",
+            Self::Delete => "DELETE",
+            Self::Set => "SET",
+            Self::Alter => "ALTER",
+            Self::Add => "ADD",
+            Self::Drop => "DROP",
+            Self::Table => "TABLE",
+            Self::Column => "COLUMN",
+            Self::Database => "DATABASE",
+            Self::Use => "USE",
+            Self::Int => "int",
+            Self::Float => "float",
+            Self::Varchar => "varchar",
+            Self::Char => "char",
+            Self::All => "ALL",
+            Self::And => "AND",
+            Self::Any => "ANY",
+            Self::Between => "BETWEEN",
+            Self::Exists => "EXISTS",
+            Self::Not => "NOT",
+            Self::Or => "OR",
+            Self::Some => "SOME",
+            Self::False => "false",
+            Self::True => "true",
+            Self::Null => "NULL",
+            Self::Is => "IS",
+            Self::Left => "LEFT",
+            Self::Right => "RIGHT",
+            Self::Outer => "OUTER",
+            Self::Join => "JOIN",
+            Self::Inner => "INNER",
+            Self::On => "ON",
+            Self::Load => "LOAD",
+            Self::Data => "DATA",
+            Self::InFile => "INFILE",
+            Self::Index => "INDEX",
+        };
+        write!(f, "{s}")
+    }
+}
+
+/// Represents a single token, its type, and the string that we parsed it from (mainly for debugging)
+#[derive(Debug, PartialEq)]
+pub struct Token {
+    pub token_type: TokenType,
+    pub value: String,
+}
+
+impl Token {
+    /// Creates a new token
+    pub fn new(token_type: TokenType, value: impl Into<String>) -> Self {
+        Self {
+            token_type,
+            value: value.into(),
+        }
+    }
+}
