@@ -1,2 +1,5 @@
 /target
+/dbms_root
+
 *.sql
+*.bin

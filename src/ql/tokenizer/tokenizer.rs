@@ -10,6 +10,7 @@ use crate::ql::{
 /// The tokenizer itself
 #[derive(Debug)]
 pub struct Tokenizer<'a> {
+    input: &'a str,
     num_chars: usize,
     /// An iterator over the characters of the input
     chars: Peekable<Chars<'a>>,
@@ -21,6 +22,7 @@ impl<'a> Tokenizer<'a> {
     /// Construct a new tokenizer for a given input
     pub fn new(input: &'a str) -> Self {
         Self {
+            input,
             num_chars: input.chars().count(),
             chars: input.chars().peekable(),
             pos: 0,
@@ -34,10 +36,12 @@ impl<'a> Tokenizer<'a> {
         while let Some(tok) = self.get_next_token() {
             match tok.token_type {
                 TokenType::Illegal(pos) => {
-                    return Err(SQLTokenizeError::IllegalToken(tok.value, pos));
+                    let (line, col) = self.pos_to_line_col(pos).unwrap();
+                    return Err(SQLTokenizeError::IllegalToken(tok.value, line, col));
                 }
                 TokenType::Unknown(pos) => {
-                    return Err(SQLTokenizeError::UnknownToken(tok.value, pos));
+                    let (line, col) = self.pos_to_line_col(pos).unwrap();
+                    return Err(SQLTokenizeError::UnknownToken(tok.value, line, col));
                 }
                 _ => {}
             }
@@ -93,7 +97,7 @@ impl<'a> Tokenizer<'a> {
                                 value,
                             ))
                         } else {
-                            Some(Token::new(TokenType::Illegal(self.pos as u64), value))
+                            Some(Token::new(TokenType::Illegal(self.pos), value))
                         }
                     }
                 }
@@ -143,7 +147,7 @@ impl<'a> Tokenizer<'a> {
                             value,
                         ))
                     } else {
-                        Some(Token::new(TokenType::Illegal(self.pos as u64), value))
+                        Some(Token::new(TokenType::Illegal(self.pos), value))
                     }
                 }
                 // a quoted identifier
@@ -171,7 +175,7 @@ impl<'a> Tokenizer<'a> {
                             value,
                         ))
                     } else {
-                        Some(Token::new(TokenType::Illegal(self.pos as u64), value))
+                        Some(Token::new(TokenType::Illegal(self.pos), value))
                     }
                 }
                 // an operator that starts with a < sign
@@ -191,7 +195,7 @@ impl<'a> Tokenizer<'a> {
                         }
                         _ => {
                             self.advance();
-                            Some(Token::new(TokenType::Illegal(self.pos as u64), "<"))
+                            Some(Token::new(TokenType::Illegal(self.pos), "<"))
                         }
                     }
                 }
@@ -208,7 +212,7 @@ impl<'a> Tokenizer<'a> {
                         }
                         _ => {
                             self.advance();
-                            Some(Token::new(TokenType::Illegal(self.pos as u64), ">"))
+                            Some(Token::new(TokenType::Illegal(self.pos), ">"))
                         }
                     }
                 }
@@ -225,7 +229,7 @@ impl<'a> Tokenizer<'a> {
                             self.advance();
                             Some(Token::new(TokenType::Operator(Operator::NotEq), "!="))
                         }
-                        _ => Some(Token::new(TokenType::Illegal(self.pos as u64), "!")),
+                        _ => Some(Token::new(TokenType::Illegal(self.pos), "!")),
                     }
                 }
                 // an operator that starts with a + sign
@@ -312,11 +316,33 @@ impl<'a> Tokenizer<'a> {
                 // anything else
                 _ => {
                     self.advance();
-                    Some(Token::new(TokenType::Unknown(self.pos as u64), c))
+                    Some(Token::new(TokenType::Unknown(self.pos), c))
                 }
             },
             None => None,
         }
+    }
+
+    /// Turns a token position into a line and column number of the underlying input string
+    ///
+    /// If the position is out of bounds, returns None, otherwise returns the line and column number
+    fn pos_to_line_col(&self, pos: usize) -> Option<(usize, usize)> {
+        if pos > self.input.len() {
+            return None;
+        }
+
+        let newlines: Vec<usize> = self
+            .input
+            .bytes()
+            .enumerate()
+            .filter_map(|(i, b)| (b == b'\n').then_some(i))
+            .collect();
+
+        let line = newlines.partition_point(|&i| i < pos);
+
+        let line_start = if line == 0 { 0 } else { newlines[line - 1] + 1 };
+
+        Some((line + 1, pos - line_start))
     }
 
     /// Advance the tokenizer to the next character and increase our position

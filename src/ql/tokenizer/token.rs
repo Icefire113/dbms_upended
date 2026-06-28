@@ -23,9 +23,9 @@ pub enum TokenType {
     SemiColon,
 
     /// An illegal/ unexpected token at position `pos`, contains the position
-    Illegal(u64),
+    Illegal(usize),
     /// A token that we don't recognize, contanins the position
-    Unknown(u64),
+    Unknown(usize),
 }
 
 /// Represents an operator
@@ -181,6 +181,7 @@ impl Display for Keyword {
 #[derive(Debug, PartialEq)]
 pub struct Token {
     pub token_type: TokenType,
+    // TODO: do we even need this anymore? iirc it was only for debugging
     pub value: String,
 }
 
