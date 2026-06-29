@@ -5,14 +5,14 @@ use std::io::{self, BufRead, Read, Seek};
 use crate::util::errors::UtilReadError;
 
 #[allow(dead_code)]
-pub(crate) fn read_f32<R: Read>(reader: &mut R) -> Result<f32, UtilReadError> {
+pub(crate) fn read_f32_le<R: Read>(reader: &mut R) -> Result<f32, UtilReadError> {
     let mut buff = [0u8; size_of::<f32>()];
     reader.read_exact(&mut buff)?;
     Ok(f32::from_le_bytes(buff))
 }
 
 #[allow(dead_code)]
-pub(crate) fn read_f64<R: Read>(reader: &mut R) -> Result<f64, UtilReadError> {
+pub(crate) fn read_f64_le<R: Read>(reader: &mut R) -> Result<f64, UtilReadError> {
     let mut buff = [0u8; size_of::<f64>()];
     reader.read_exact(&mut buff)?;
     Ok(f64::from_le_bytes(buff))
@@ -28,7 +28,7 @@ pub(crate) fn read_n_bytes<R: Read>(reader: &mut R, n: usize) -> Result<Vec<u8>,
 
 #[allow(dead_code)]
 /// Reads a u8 from the reader
-pub(crate) fn read_u8<R: Read>(reader: &mut R) -> Result<u8, UtilReadError> {
+pub(crate) fn read_u8_le<R: Read>(reader: &mut R) -> Result<u8, UtilReadError> {
     let mut buff = [0u8; size_of::<u8>()];
     reader.read_exact(&mut buff)?;
     Ok(u8::from_le_bytes(buff))
@@ -36,7 +36,7 @@ pub(crate) fn read_u8<R: Read>(reader: &mut R) -> Result<u8, UtilReadError> {
 
 #[allow(dead_code)]
 /// Reads a u16 from the reader
-pub(crate) fn read_u16<R: Read>(reader: &mut R) -> Result<u16, UtilReadError> {
+pub(crate) fn read_u16_le<R: Read>(reader: &mut R) -> Result<u16, UtilReadError> {
     let mut buff = [0u8; size_of::<u16>()];
     reader.read_exact(&mut buff)?;
     Ok(u16::from_le_bytes(buff))
@@ -44,7 +44,15 @@ pub(crate) fn read_u16<R: Read>(reader: &mut R) -> Result<u16, UtilReadError> {
 
 #[allow(dead_code)]
 /// Reads a u32 from the reader
-pub(crate) fn read_u32<R: Read>(reader: &mut R) -> Result<u32, UtilReadError> {
+pub(crate) fn read_u32_le<R: Read>(reader: &mut R) -> Result<u32, UtilReadError> {
+    let mut buff = [0u8; size_of::<u32>()];
+    reader.read_exact(&mut buff)?;
+    Ok(u32::from_le_bytes(buff))
+}
+
+#[allow(dead_code)]
+/// Reads a u32 from the reader
+pub(crate) fn read_u32_be<R: Read>(reader: &mut R) -> Result<u32, UtilReadError> {
     let mut buff = [0u8; size_of::<u32>()];
     reader.read_exact(&mut buff)?;
     Ok(u32::from_le_bytes(buff))
@@ -52,7 +60,7 @@ pub(crate) fn read_u32<R: Read>(reader: &mut R) -> Result<u32, UtilReadError> {
 
 #[allow(dead_code)]
 /// Reads a i32 from the reader
-pub(crate) fn read_i32<R: Read>(reader: &mut R) -> Result<i32, UtilReadError> {
+pub(crate) fn read_i32_le<R: Read>(reader: &mut R) -> Result<i32, UtilReadError> {
     let mut buff = [0u8; size_of::<i32>()];
     reader.read_exact(&mut buff)?;
     Ok(i32::from_le_bytes(buff))
@@ -60,10 +68,18 @@ pub(crate) fn read_i32<R: Read>(reader: &mut R) -> Result<i32, UtilReadError> {
 
 #[allow(dead_code)]
 /// Reads a u64 from the reader
-pub(crate) fn read_u64<R: Read>(reader: &mut R) -> Result<u64, UtilReadError> {
+pub(crate) fn read_u64_le<R: Read>(reader: &mut R) -> Result<u64, UtilReadError> {
     let mut buff = [0u8; size_of::<u64>()];
     reader.read_exact(&mut buff)?;
     Ok(u64::from_le_bytes(buff))
+}
+
+#[allow(dead_code)]
+/// Reads a u64 from the reader
+pub(crate) fn read_u64_be<R: Read>(reader: &mut R) -> Result<u64, UtilReadError> {
+    let mut buff = [0u8; size_of::<u64>()];
+    reader.read_exact(&mut buff)?;
+    Ok(u64::from_be_bytes(buff))
 }
 
 #[allow(dead_code)]

@@ -5,7 +5,7 @@
 ```raw
 dbfm: u8[4]
 version: u32
-// The xxhash3_64 hash of the data_blob
+// The big endian xxhash3_64 hash of the data_blob
 data_hash: u64
 data_size: u64
 // bitcode encoded DBFormat struct
