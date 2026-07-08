@@ -12,7 +12,7 @@ pub enum DBMSError {
     #[error("Database root does not exist or has not been created")]
     DbmsRootDoesNotExist,
 
-    #[error("Database name is not UTF-8: {}", _0.display())]
+    #[error("Database name is not UTF-8: {:?}", _0)]
     DbNameIsNotUtf8(OsString),
 
     #[error("Error loading database")]

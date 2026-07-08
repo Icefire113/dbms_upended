@@ -73,6 +73,7 @@ pub enum LiteralToken {
     Int(i32),
     BigInt(i64),
     Float(f32),
+    BigFloat(f64),
     String(String),
 }
 
@@ -98,9 +99,11 @@ pub enum Keyword {
     Use,
     // type keywords
     Int,
+    BigInt,
     Float,
-    Varchar,
-    Char,
+    BigFloat,
+    String,
+    Bool,
     // Logical operator keywords
     All,
     And,
@@ -124,6 +127,10 @@ pub enum Keyword {
     Data,
     InFile,
     Index,
+    // Column modifiers
+    Nullable,
+    Indexed,
+    Unique,
 }
 
 impl Display for Keyword {
@@ -147,9 +154,11 @@ impl Display for Keyword {
             Self::Database => "DATABASE",
             Self::Use => "USE",
             Self::Int => "int",
+            Self::BigInt => "bigint",
             Self::Float => "float",
-            Self::Varchar => "varchar",
-            Self::Char => "char",
+            Self::BigFloat => "bigfloat",
+            Self::String => "string",
+            Self::Bool => "bool",
             Self::All => "ALL",
             Self::And => "AND",
             Self::Any => "ANY",
@@ -172,6 +181,9 @@ impl Display for Keyword {
             Self::Data => "DATA",
             Self::InFile => "INFILE",
             Self::Index => "INDEX",
+            Self::Nullable => "nullable",
+            Self::Indexed => "indexed",
+            Self::Unique => "unique",
         };
         write!(f, "{s}")
     }

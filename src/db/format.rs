@@ -66,6 +66,7 @@ impl DBFormat {
             trace!("expected hash: {:X}, got hash: {:X}", data_hash, hash);
             return Err(DBFormatError::DbFormatFileInvalidChecksum);
         }
+        trace!("Hash OK");
 
         let db_format: DBFormat = bitcode::decode(&data)?;
         if db_format.name != db_name {

@@ -1,1 +1,2 @@
 ☐ Move database loading to be async, as we can load multiple databases at once as they are not dependent
+☐ A better way to report illegal/ unknown tokens when parsing

@@ -90,15 +90,18 @@ impl<'a> Tokenizer<'a> {
                             TokenType::Literal(LiteralToken::BigInt(n)),
                             value,
                         ))
+                    } else if let Ok(n) = value.parse::<f32>() {
+                        Some(Token::new(
+                            TokenType::Literal(LiteralToken::Float(n)),
+                            value,
+                        ))
+                    } else if let Ok(n) = value.parse::<f64>() {
+                        Some(Token::new(
+                            TokenType::Literal(LiteralToken::BigFloat(n)),
+                            value,
+                        ))
                     } else {
-                        if let Ok(n) = value.parse::<f32>() {
-                            Some(Token::new(
-                                TokenType::Literal(LiteralToken::Float(n)),
-                                value,
-                            ))
-                        } else {
-                            Some(Token::new(TokenType::Illegal(self.pos), value))
-                        }
+                        Some(Token::new(TokenType::Illegal(self.pos), value))
                     }
                 }
                 // a keyword, or identifier
