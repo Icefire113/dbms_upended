@@ -122,6 +122,8 @@ pub enum Keyword {
     Outer,
     Join,
     Inner,
+    Full,
+    Cross,
     On,
     Load,
     Data,
@@ -186,6 +188,8 @@ impl Display for Keyword {
             Self::Nullable => "nullable",
             Self::Indexed => "indexed",
             Self::Unique => "unique",
+            Self::Full => "FULL",
+            Self::Cross => "CROSS",
         };
         write!(f, "{s}")
     }

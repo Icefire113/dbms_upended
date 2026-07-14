@@ -2,7 +2,7 @@ use std::{fs::File, io::Read};
 
 use anyhow::Context;
 
-use dialoguer::Input;
+use dialoguer::{BasicHistory, Input};
 use env_logger::{Builder, Env, TimestampPrecision};
 use log::{debug, error, info};
 
@@ -51,10 +51,13 @@ async fn main() -> anyhow::Result<()> {
         .context("Error loading DBMS")?;
 
     if let Some(sql_file_path) = &args.sql_file {
-        let mut file = File::options().read(true).open(sql_file_path).map_err(|e| {
-            error!("Error opening SQL file for reading: {}", e);
-            e
-        })?;
+        let mut file = File::options()
+            .read(true)
+            .open(sql_file_path)
+            .map_err(|e| {
+                error!("Error opening SQL file for reading: {}", e);
+                e
+            })?;
         let mut sql = String::new();
         file.read_to_string(&mut sql).map_err(|e| {
             error!("Error reading SQL file: {}", e);
@@ -77,8 +80,12 @@ async fn main() -> anyhow::Result<()> {
     } else {
         // read sql from stdin in a loop
         println!("Enter SQL, use \\q to quit");
+        let mut history: BasicHistory = BasicHistory::new().max_entries(10).no_duplicates(true);
         loop {
-            let input: String = Input::new().with_prompt("#").interact_text()?;
+            let input: String = Input::new()
+                .history_with(&mut history)
+                .with_prompt("#")
+                .interact_text()?;
             if let Some(input) = input.strip_prefix("\\") {
                 match input {
                     "q" => break,

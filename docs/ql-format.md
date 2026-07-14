@@ -18,7 +18,7 @@ With a where clause:
 
 ```sql
 select /* Comma seperated list of columns to select, or a wildcard */
-from   /* [table_name], ... */
+from   table_name
 where  /* Optional where condition */
 
 ;
@@ -28,11 +28,82 @@ Without a where clause:
 
 ```sql
 select /* Comma seperated list of columns to select, or a wildcard */
-from   /* [table_name], ... */
+from   table_name
 ;
 ```
 
-Note that aliases are not supported for tables
+Note that aliases are not supported for tables, also note that the old syntax of `select * from tbl1, tbl2...` is not supported, you instead need to use the `join` keyword like so: `select * from tbl1 cross join tbl2 ...`
+
+### Joining Tables
+
+Tables can be joined together using the `join` keyword. And the types of joins can be found below.
+
+#### Inner Join: `inner join`
+
+Returns all rows that are in both tables
+
+```sql
+SELECT * FROM customers
+INNER JOIN orders ON customers.id = orders.customer_id;
+```
+
+#### Left Join: `left join`
+
+Returns all rows from the first (left) table, plus any matching rows from the second (right) table. Non-matching rows from the right table return `NULL`.
+
+```sql
+SELECT * FROM customers
+LEFT JOIN orders ON customers.id = orders.customer_id;
+```
+
+#### Right Join: `right join`
+
+Returns all rows from the second (right) table, plus any matching rows from the first (left) table. Non-matching rows from the left table return `NULL`.
+
+```sql
+SELECT * FROM orders
+RIGHT JOIN customers ON orders.customer_id = customers.id;
+```
+
+#### Full Join: `full join`
+
+Returns all rows from both tables, with matching rows combined and non-matching rows from either table returning `NULL` where no match exists.
+
+```sql
+SELECT * FROM customers
+FULL JOIN orders ON customers.id = orders.customer_id;
+```
+
+#### Cross Join: `cross join`
+
+Returns every row from the left table combied with every row from the right table
+
+```sql
+SELECT * FROM customers
+CROSS JOIN orders;
+```
+
+### Putting it all together
+
+In summary it looks like:
+
+```sql
+select /* Comma seperated list of columns to select, or a wildcard */
+from   table_name
+JOIN_TYPE join   /* [table_name], ... */
+on     /* [column_name] = [column_name] */
+where  /* Optional where condition */
+;
+```
+
+A practical example would be:
+
+```sql
+select * from customers
+inner join orders on customers.id = orders.customer_id
+-- maybe another join
+where orders.status = 'delivered';
+```
 
 ## Creating
 

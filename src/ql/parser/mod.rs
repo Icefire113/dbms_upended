@@ -16,7 +16,7 @@ use crate::{
                 drop_stmt::{DropStatement, DropType},
                 insert_stmt::InsertStatement,
                 load_stmt::LoadStatement,
-                select_stmt::SelectStatement,
+                select_stmt::{JoinType, SelectStatement},
                 update_stmt::UpdateStatement,
                 use_stmt::UseStatement,
             },
@@ -145,12 +145,38 @@ impl<'a> Parser<'a> {
         };
 
         self.expect_keyword(Keyword::From)?;
+        let primary_table: String = self.expect_ident()?.to_owned();
 
-        let mut tables: Vec<String> = Vec::new();
-        while let Ok(ident) = self.expect_ident() {
-            tables.push(ident.to_owned());
-            if self.expect_token(TokenType::Comma).is_err() {
-                break;
+        let mut joins: Vec<(String, JoinType)> = Vec::new();
+
+        while let Ok(kw) = self.expect_one_of_keywords(&[
+            Keyword::Inner,
+            Keyword::Right,
+            Keyword::Left,
+            Keyword::Full,
+            Keyword::Cross,
+        ]) {
+            self.expect_keyword(Keyword::Join)?;
+            let joined_table: String = self.expect_ident()?.to_owned();
+            match kw {
+                Keyword::Inner => {
+                    self.expect_keyword(Keyword::On)?;
+                    joins.push((joined_table, JoinType::Inner(self.parse_expr(0)?)))
+                }
+                Keyword::Right => {
+                    self.expect_keyword(Keyword::On)?;
+                    joins.push((joined_table, JoinType::Right(self.parse_expr(0)?)))
+                }
+                Keyword::Left => {
+                    self.expect_keyword(Keyword::On)?;
+                    joins.push((joined_table, JoinType::Left(self.parse_expr(0)?)))
+                }
+                Keyword::Full => {
+                    self.expect_keyword(Keyword::On)?;
+                    joins.push((joined_table, JoinType::Full(self.parse_expr(0)?)))
+                }
+                Keyword::Cross => joins.push((joined_table, JoinType::Cross)),
+                _ => unreachable!(),
             }
         }
 
@@ -163,8 +189,9 @@ impl<'a> Parser<'a> {
 
         Ok(QLStatement::Select(SelectStatement {
             filter_cols,
-            targets: tables,
+            primary_table,
             where_clause: where_cond,
+            joins,
         }))
     }
 
@@ -648,20 +675,14 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn expect_one_of_keywords(
-        &mut self,
-        expected_keywords: &[Keyword],
-    ) -> Result<Keyword, QLParseError> {
+    fn expect_one_of_keywords(&mut self, kws: &[Keyword]) -> Result<Keyword, QLParseError> {
         match self.peek().map(|t| &t.token_type) {
-            Some(TokenType::Keyword(keyword)) if expected_keywords.contains(keyword) => {
+            Some(TokenType::Keyword(keyword)) if kws.contains(keyword) => {
                 let kw = *keyword;
                 self.advance();
                 Ok(kw)
             }
-            _ => Err(QLParseError::ExpectedOneOfKeywords(
-                expected_keywords.to_vec(),
-                self.pos,
-            )),
+            _ => Err(QLParseError::ExpectedOneOfKeywords(kws.to_vec(), self.pos)),
         }
     }
 
