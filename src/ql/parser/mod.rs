@@ -8,8 +8,12 @@ use crate::{
             expression::{Expr, literal::Literal, unary_op::UnaryOp},
             statement::QLStatement,
             statements::{
+                alter_stmt::{
+                    AlterAction, AlterActionModifiers, AlterMode, AlterObject, AlterStatement,
+                },
                 create_stmt::{ColumnModifiers, CreateStatement, CreateType},
                 drop_stmt::{DropStatement, DropType},
+                insert_stmt::InsertStatement,
                 load_stmt::LoadStatement,
                 use_stmt::UseStatement,
             },
@@ -42,7 +46,7 @@ impl<'a> Parser<'a> {
 
     /// Consumes this parser and parses our token list into a list of statements
     pub fn parse(mut self) -> Result<Vec<QLStatement>, QLParseError> {
-        let mut queries = Vec::new();
+        let mut queries: Vec<QLStatement> = Vec::new();
         while let Some(_) = self.tokens.peek() {
             let q: QLStatement = self.parse_single_query()?;
             trace!("Parsed query: {:#?}", q);
@@ -89,47 +93,7 @@ impl<'a> Parser<'a> {
                 self.expect_token(TokenType::LParen)?;
                 let mut columns: Vec<(String, ColumnType, ColumnModifiers)> = Vec::new();
                 loop {
-                    let col_name = self.expect_ident()?.to_owned();
-                    let col_type = self
-                        .expect_one_of_keywords(&[
-                            Keyword::Int,
-                            Keyword::BigInt,
-                            Keyword::Float,
-                            Keyword::BigFloat,
-                            Keyword::String,
-                            Keyword::Bool,
-                        ])?
-                        .try_into()
-                        .unwrap();
-
-                    let mut col_mods: ColumnModifiers = ColumnModifiers {
-                        nullable: false,
-                        unique: false,
-                        indexed: None,
-                    };
-
-                    // Peek before consuming, so a non-modifier token (comma/rparen) is left intact.
-                    while self.peek_is_keyword(&[
-                        Keyword::Nullable,
-                        Keyword::Indexed,
-                        Keyword::Unique,
-                    ]) {
-                        let tok = self.expect_one_of_keywords(&[
-                            Keyword::Nullable,
-                            Keyword::Indexed,
-                            Keyword::Unique,
-                        ])?;
-                        match tok {
-                            Keyword::Nullable => col_mods.nullable = true,
-                            Keyword::Unique => col_mods.unique = true,
-                            Keyword::Indexed => {
-                                col_mods.indexed = Some(self.expect_ident()?.to_owned());
-                            }
-                            _ => unreachable!(),
-                        }
-                    }
-
-                    columns.push((col_name, col_type, col_mods));
+                    columns.push(self.expect_column_decl()?);
 
                     // After a column: either a comma (more columns follow) or a closing paren (done).
                     match self.expect_one_of_tokens(&[TokenType::Comma, TokenType::RParen])? {
@@ -183,7 +147,28 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_insert(&mut self) -> Result<QLStatement, QLParseError> {
-        todo!()
+        self.expect_keyword(Keyword::Into)?;
+        let tbl_name: String = self.expect_ident()?.to_owned();
+        let mut cols: Option<Vec<String>> = None;
+
+        if !self.peek_is_keyword(&[Keyword::Values]) {
+            cols = Some(self.expect_identifier_list()?);
+        }
+        self.expect_keyword(Keyword::Values)?;
+        let mut rows: Vec<Vec<Literal>> = Vec::new();
+        while let Ok(row) = self.expect_literal_list() {
+            rows.push(row);
+            if self.expect_token(TokenType::Comma).is_err() {
+                break;
+            }
+        }
+
+        self.expect_end_of_query()?;
+        Ok(QLStatement::Insert(InsertStatement {
+            name: tbl_name,
+            columns: cols,
+            values: rows,
+        }))
     }
 
     fn parse_update(&mut self) -> Result<QLStatement, QLParseError> {
@@ -195,7 +180,67 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_alter(&mut self) -> Result<QLStatement, QLParseError> {
-        todo!()
+        match self.expect_one_of_keywords(&[Keyword::Table, Keyword::Column])? {
+            Keyword::Table => {
+                let tbl_name: String = self.expect_ident()?.to_owned();
+                let mode: AlterMode =
+                    match self.expect_one_of_keywords(&[Keyword::Add, Keyword::Drop])? {
+                        Keyword::Add => AlterMode::Add,
+                        Keyword::Drop => AlterMode::Drop,
+                        _ => unreachable!(),
+                    };
+                self.expect_keyword(Keyword::Column)?;
+
+                if mode == AlterMode::Add {
+                    let (col_name, col_type, col_modifs) = self.expect_column_decl()?;
+                    self.expect_end_of_query()?;
+
+                    Ok(QLStatement::Alter(AlterStatement {
+                        object: AlterObject::Table,
+                        object_name: tbl_name,
+                        mode,
+                        action: AlterAction::AddColumn(col_name, col_type, col_modifs),
+                    }))
+                } else {
+                    // AlterMode::Drop
+                    let col_name = self.expect_ident()?.to_owned();
+                    self.expect_end_of_query()?;
+
+                    Ok(QLStatement::Alter(AlterStatement {
+                        object: AlterObject::Table,
+                        object_name: tbl_name,
+                        mode,
+                        action: AlterAction::DropColumn(col_name),
+                    }))
+                }
+            }
+            Keyword::Column => {
+                let column_name: String = self.expect_ident()?.to_owned();
+                let mode: AlterMode =
+                    match self.expect_one_of_keywords(&[Keyword::Add, Keyword::Drop])? {
+                        Keyword::Add => AlterMode::Add,
+                        Keyword::Drop => AlterMode::Drop,
+                        _ => unreachable!(),
+                    };
+                self.expect_keyword(Keyword::Modifier)?;
+
+                let modifier =
+                    match self.expect_one_of_keywords(&[Keyword::Unique, Keyword::Nullable])? {
+                        Keyword::Unique => AlterActionModifiers::Unique,
+                        Keyword::Nullable => AlterActionModifiers::Nullable,
+                        _ => unreachable!(),
+                    };
+                self.expect_end_of_query()?;
+
+                Ok(QLStatement::Alter(AlterStatement {
+                    object: AlterObject::Column,
+                    object_name: column_name,
+                    mode,
+                    action: AlterAction::Modifier(modifier),
+                }))
+            }
+            _ => unreachable!(),
+        }
     }
 
     fn parse_drop(&mut self) -> Result<QLStatement, QLParseError> {
@@ -317,6 +362,76 @@ impl<'a> Parser<'a> {
     // ===========================================================================
     // Helpers
     // ===========================================================================
+
+    fn expect_column_decl(
+        &mut self,
+    ) -> Result<(String, ColumnType, ColumnModifiers), QLParseError> {
+        let col_name = self.expect_ident()?.to_owned();
+        let col_type = self
+            .expect_one_of_keywords(&[
+                Keyword::Int,
+                Keyword::BigInt,
+                Keyword::Float,
+                Keyword::BigFloat,
+                Keyword::String,
+                Keyword::Bool,
+            ])?
+            .try_into()
+            .unwrap();
+
+        let mut col_mods: ColumnModifiers = ColumnModifiers {
+            nullable: false,
+            unique: false,
+            indexed: None,
+        };
+
+        // Peek before consuming, so a non-modifier token (comma/rparen) is left intact.
+        while self.peek_is_keyword(&[Keyword::Nullable, Keyword::Indexed, Keyword::Unique]) {
+            let tok = self.expect_one_of_keywords(&[
+                Keyword::Nullable,
+                Keyword::Indexed,
+                Keyword::Unique,
+            ])?;
+            match tok {
+                Keyword::Nullable => col_mods.nullable = true,
+                Keyword::Unique => col_mods.unique = true,
+                Keyword::Indexed => {
+                    col_mods.indexed = Some(self.expect_ident()?.to_owned());
+                }
+                _ => unreachable!(),
+            }
+        }
+        Ok((col_name, col_type, col_mods))
+    }
+
+    /// Consumes the next sequence of tokens that looks like a list of literals
+    /// (basically a comma seperated list of literal values with parenthesis around them)
+    fn expect_literal_list(&mut self) -> Result<Vec<Literal>, QLParseError> {
+        let mut lits: Vec<Literal> = Vec::new();
+        self.expect_token(TokenType::LParen)?;
+        while let Ok(lit) = self.expect_literal() {
+            lits.push(lit);
+            if self.expect_token(TokenType::Comma).is_err() {
+                break;
+            }
+        }
+        self.expect_token(TokenType::RParen)?;
+        Ok(lits)
+    }
+
+    fn expect_identifier_list(&mut self) -> Result<Vec<String>, QLParseError> {
+        self.expect_token(TokenType::LParen)?;
+        let mut idents: Vec<String> = Vec::new();
+        while let Ok(ident) = self.expect_ident() {
+            idents.push(ident.to_owned());
+            if self.expect_token(TokenType::Comma).is_err() {
+                break;
+            }
+        }
+        self.expect_token(TokenType::RParen)?;
+
+        Ok(idents)
+    }
 
     fn expect_literal(&mut self) -> Result<Literal, QLParseError> {
         if let Ok(b) = self.expect_literal_bool() {

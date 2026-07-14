@@ -6,7 +6,7 @@ pub struct CreateStatement {
     pub name: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct ColumnModifiers {
     pub nullable: bool,
     pub unique: bool,

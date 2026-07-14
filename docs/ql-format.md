@@ -2,6 +2,16 @@
 
 The query language is designed to be somewhat similar to SQL.
 
+## Dropping
+
+You can drop a database, index or table like so:
+
+```sql
+drop database database_name;
+drop index index_name;
+drop table table_name;
+```
+
 ## Selecting
 
 ```sql
@@ -14,7 +24,7 @@ where  /* Optional where condition */
 
 ## Creating
 
-### Tables
+### Creating Tables
 
 ```sql
 create table table_name
@@ -52,7 +62,7 @@ The 6 basic column types are as follows, more details can be found in the [list 
 - `string`
 - `boolean`
 
-### Databases
+### Creating Databases
 
 Databases can be created like so:
 
@@ -60,7 +70,7 @@ Databases can be created like so:
 create database database_name;
 ```
 
-### Indexes
+### Creating Indexes
 
 Indexes can be created like so:
 
@@ -83,3 +93,77 @@ from 'file_path';
 Note the single quotes around the file path, they are required.
 
 Currently, only CSV files are supported, they should not contain a header row.
+
+## Inserting
+
+Insert with values:
+
+```sql
+insert into table_name
+values (value_1, value_2, ...);
+```
+
+Insert only specific columns:
+
+```sql
+insert into table_name (column_1, column_2, ...)
+values (value_1, value_2, ...);
+```
+
+Insert multiple rows:
+
+```sql
+insert into table_name
+values (value_1, value_2, ...),
+      (value_1, value_2, ...),
+      ...
+;
+```
+
+Note that if a column is not given a value, it will default to `null` if and only if the column is nullable, if it is not nullable, the insert will fail.
+
+## Altering
+
+### Altering Tables
+
+#### Adding Columns
+
+If you wish to add a column to a table, you can do so like so:
+
+```sql
+alter table table_name
+add column column_name column_type /* [column modifiers] */;
+```
+
+#### Removing Columns
+
+If you wish to remove a column from a table, you can do so like so:
+
+```sql
+alter table table_name
+drop column column_name;
+```
+
+### Altering Columns
+
+#### Adding Column Modifiers
+
+If you wish to add a modifier to a column, you can do so like:
+
+```sql
+alter column table_name.column_name
+add modifier modifier_name;
+```
+
+Note that you cannot add the `indexed` modifier to a column after it has been created, if you wish to add an index to a column, you must do so when creating the column or via [`create index`](#creating-indexes).
+
+#### Removing Column Modifiers
+
+If you with to remove a modifier from a column, you can do so like:
+
+```sql
+alter column table_name.column_name
+drop modifier modifier_name;
+```
+
+Note that you cannot remove the `indexed` modifier from a column after it has been created, if you wish to remove an index from a column, you must do so via [`drop index`](#dropping).

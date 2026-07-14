@@ -127,6 +127,7 @@ pub enum Keyword {
     Data,
     InFile,
     Index,
+    Modifier,
     // Column modifiers
     Nullable,
     Indexed,
@@ -181,6 +182,7 @@ impl Display for Keyword {
             Self::Data => "DATA",
             Self::InFile => "INFILE",
             Self::Index => "INDEX",
+            Self::Modifier => "MODIFIER",
             Self::Nullable => "nullable",
             Self::Indexed => "indexed",
             Self::Unique => "unique",
