@@ -16,6 +16,7 @@ use crate::{
                 drop_stmt::{DropStatement, DropType},
                 insert_stmt::InsertStatement,
                 load_stmt::LoadStatement,
+                update_stmt::UpdateStatement,
                 use_stmt::UseStatement,
             },
         },
@@ -173,7 +174,29 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_update(&mut self) -> Result<QLStatement, QLParseError> {
-        todo!()
+        let tbl_name = self.expect_ident()?.to_owned();
+        self.expect_keyword(Keyword::Set)?;
+        let mut cols: Vec<(String, Literal)> = Vec::new();
+        loop {
+            let col_name = self.expect_ident()?.to_owned();
+            self.expect_operator(Operator::Equals)?;
+            let val = self.expect_literal()?;
+            cols.push((col_name, val));
+            if self.expect_token(TokenType::Comma).is_err() {
+                break;
+            }
+        }
+        let mut where_cond: Option<Expr> = None;
+        if self.expect_keyword(Keyword::Where).is_ok() {
+            where_cond = Some(self.parse_expr(0)?);
+        }
+        self.expect_end_of_query()?;
+
+        Ok(QLStatement::Update(UpdateStatement {
+            target: tbl_name,
+            set: cols,
+            where_cond,
+        }))
     }
 
     fn parse_delete(&mut self) -> Result<QLStatement, QLParseError> {

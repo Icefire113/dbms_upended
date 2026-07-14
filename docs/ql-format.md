@@ -176,3 +176,26 @@ Removes a row from a table if the where condition is evaluated to true
 delete from table_name
 where condition;
 ```
+
+## Updating
+
+Sets the value of some columns to some values if the where condition is evaluated to true
+
+With a where condition:
+
+```sql
+update table_name
+set column_1 = value_1,
+    column_2 = value_2,
+    ...
+where condition;
+```
+
+Without a where condition:
+
+```sql
+update table_name
+set column_1 = value_1,
+    column_2 = value_2,
+    ...
+```

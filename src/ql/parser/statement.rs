@@ -1,7 +1,7 @@
 use crate::ql::parser::statements::{
     alter_stmt::AlterStatement, create_stmt::CreateStatement, delete_stmt::DeleteStatement,
     drop_stmt::DropStatement, insert_stmt::InsertStatement, load_stmt::LoadStatement,
-    use_stmt::UseStatement,
+    update_stmt::UpdateStatement, use_stmt::UseStatement,
 };
 
 #[derive(Debug)]
@@ -13,4 +13,5 @@ pub enum QLStatement {
     Insert(InsertStatement),
     Alter(AlterStatement),
     Delete(DeleteStatement),
+    Update(UpdateStatement),
 }
