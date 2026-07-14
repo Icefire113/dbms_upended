@@ -1,6 +1,6 @@
 # Query Language
 
-The query language is designed to be somewhat similar to SQL.
+The query language is designed to be somewhat similar to SQL. It does not have a name yet.
 
 ## Dropping
 
