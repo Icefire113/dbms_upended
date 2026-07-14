@@ -167,3 +167,12 @@ drop modifier modifier_name;
 ```
 
 Note that you cannot remove the `indexed` modifier from a column after it has been created, if you wish to remove an index from a column, you must do so via [`drop index`](#dropping).
+
+## Deleting
+
+Removes a row from a table if the where condition is evaluated to true
+
+```sql
+delete from table_name
+where condition;
+```

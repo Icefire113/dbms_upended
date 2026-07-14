@@ -12,6 +12,7 @@ use crate::{
                     AlterAction, AlterActionModifiers, AlterMode, AlterObject, AlterStatement,
                 },
                 create_stmt::{ColumnModifiers, CreateStatement, CreateType},
+                delete_stmt::DeleteStatement,
                 drop_stmt::{DropStatement, DropType},
                 insert_stmt::InsertStatement,
                 load_stmt::LoadStatement,
@@ -176,7 +177,16 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_delete(&mut self) -> Result<QLStatement, QLParseError> {
-        todo!()
+        self.expect_keyword(Keyword::From)?;
+        let tbl_name: String = self.expect_ident()?.to_owned();
+        self.expect_keyword(Keyword::Where)?;
+        let where_cond = self.parse_expr(0)?;
+        dbg!(&where_cond);
+        self.expect_end_of_query()?;
+        Ok(QLStatement::Delete(DeleteStatement {
+            name: tbl_name,
+            where_cond,
+        }))
     }
 
     fn parse_alter(&mut self) -> Result<QLStatement, QLParseError> {
@@ -285,7 +295,8 @@ impl<'a> Parser<'a> {
             };
 
             // Handle special cases like `is null` or `is not null`
-            if self.expect_keyword(Keyword::Is).is_ok() {
+            if op == TokenType::Keyword(Keyword::Is) {
+                self.advance();
                 let l_bind_pow = 7u8;
                 if l_bind_pow < min_bp {
                     break;
@@ -454,199 +465,159 @@ impl<'a> Parser<'a> {
     }
 
     fn expect_literal_null(&mut self) -> Result<(), QLParseError> {
-        match self.advance() {
-            Some(tok) => match &tok.token_type {
-                TokenType::Keyword(Keyword::Null) => Ok(()),
-                _ => Err(QLParseError::ExpectedLiteralNull(self.pos)),
-            },
-            None => Err(QLParseError::ExpectedLiteralNull(self.pos)),
+        match self.peek() {
+            Some(tok) if matches!(tok.token_type, TokenType::Keyword(Keyword::Null)) => {
+                self.advance();
+                Ok(())
+            }
+            _ => Err(QLParseError::ExpectedLiteralNull(self.pos)),
         }
     }
 
     fn expect_literal_bool(&mut self) -> Result<bool, QLParseError> {
-        match self.advance() {
-            Some(tok) => match &tok.token_type {
-                TokenType::Keyword(Keyword::True) => Ok(true),
-                TokenType::Keyword(Keyword::False) => Ok(false),
-                _ => Err(QLParseError::ExpectedLiteralBool(self.pos)),
-            },
-            None => Err(QLParseError::ExpectedLiteralBool(self.pos)),
+        match self.peek().map(|t| &t.token_type) {
+            Some(TokenType::Keyword(Keyword::True)) => {
+                self.advance();
+                Ok(true)
+            }
+            Some(TokenType::Keyword(Keyword::False)) => {
+                self.advance();
+                Ok(false)
+            }
+            _ => Err(QLParseError::ExpectedLiteralBool(self.pos)),
         }
     }
 
     fn expect_literal_f64(&mut self) -> Result<f64, QLParseError> {
-        match self.advance() {
-            Some(tok) => match &tok.token_type {
-                TokenType::Literal(LiteralToken::BigFloat(n)) => Ok(n.clone()),
-                _ => Err(QLParseError::ExpectedLiteralBigFloat(self.pos)),
-            },
-            None => Err(QLParseError::ExpectedLiteralBigFloat(self.pos)),
+        match self.peek().map(|t| &t.token_type) {
+            Some(TokenType::Literal(LiteralToken::BigFloat(n))) => {
+                self.advance();
+                Ok(*n)
+            }
+            _ => Err(QLParseError::ExpectedLiteralBigFloat(self.pos)),
         }
     }
 
     fn expect_literal_f32(&mut self) -> Result<f32, QLParseError> {
-        match self.advance() {
-            Some(tok) => match &tok.token_type {
-                TokenType::Literal(LiteralToken::Float(n)) => Ok(n.clone()),
-                _ => Err(QLParseError::ExpectedLiteralFloat(self.pos)),
-            },
-            None => Err(QLParseError::ExpectedLiteralFloat(self.pos)),
+        match self.peek().map(|t| &t.token_type) {
+            Some(TokenType::Literal(LiteralToken::Float(n))) => {
+                self.advance();
+                Ok(*n)
+            }
+            _ => Err(QLParseError::ExpectedLiteralFloat(self.pos)),
         }
     }
 
     fn expect_literal_i64(&mut self) -> Result<i64, QLParseError> {
-        match self.advance() {
-            Some(tok) => match &tok.token_type {
-                TokenType::Literal(LiteralToken::BigInt(n)) => Ok(n.clone()),
-                _ => Err(QLParseError::ExpectedLiteralBigInt(self.pos)),
-            },
-            None => Err(QLParseError::ExpectedLiteralBigInt(self.pos)),
+        match self.peek().map(|t| &t.token_type) {
+            Some(TokenType::Literal(LiteralToken::BigInt(n))) => {
+                self.advance();
+                Ok(*n)
+            }
+            _ => Err(QLParseError::ExpectedLiteralBigInt(self.pos)),
         }
     }
 
     fn expect_literal_i32(&mut self) -> Result<i32, QLParseError> {
-        match self.advance() {
-            Some(tok) => match &tok.token_type {
-                TokenType::Literal(LiteralToken::Int(n)) => Ok(n.clone()),
-                _ => Err(QLParseError::ExpectedLiteralInt(self.pos)),
-            },
-            None => Err(QLParseError::ExpectedLiteralInt(self.pos)),
+        match self.peek().map(|t| &t.token_type) {
+            Some(TokenType::Literal(LiteralToken::Int(n))) => {
+                self.advance();
+                Ok(*n)
+            }
+            _ => Err(QLParseError::ExpectedLiteralInt(self.pos)),
         }
     }
 
     fn expect_literal_string(&mut self) -> Result<String, QLParseError> {
-        match self.advance() {
-            Some(tok) => match &tok.token_type {
-                TokenType::Literal(LiteralToken::String(s)) => Ok(s.clone()),
-                _ => Err(QLParseError::ExpectedLiteralString(self.pos)),
-            },
-            None => Err(QLParseError::ExpectedLiteralString(self.pos)),
+        match self.peek().map(|t| &t.token_type) {
+            Some(TokenType::Literal(LiteralToken::String(s))) => {
+                self.advance();
+                Ok(s.clone())
+            }
+            _ => Err(QLParseError::ExpectedLiteralString(self.pos)),
         }
     }
 
     fn expect_token(&mut self, expected: TokenType) -> Result<TokenType, QLParseError> {
-        match self.advance() {
-            Some(tok) => {
-                if tok.token_type == expected {
-                    Ok(tok.token_type.clone())
-                } else {
-                    Err(QLParseError::ExpectedToken(expected, self.pos))
-                }
+        match self.peek() {
+            Some(tok) if tok.token_type == expected => {
+                self.advance();
+                Ok(expected)
             }
-            None => Err(QLParseError::ExpectedToken(expected, self.pos)),
+            _ => Err(QLParseError::ExpectedToken(expected, self.pos)),
         }
     }
 
     fn expect_operator(&mut self, expected: Operator) -> Result<Operator, QLParseError> {
-        match self.advance() {
-            Some(tok) => match &tok.token_type {
-                TokenType::Operator(op) => {
-                    if op == &expected {
-                        Ok(expected)
-                    } else {
-                        Err(QLParseError::ExpectedOperator(expected, self.pos))
-                    }
-                }
-                _ => Err(QLParseError::ExpectedOperator(expected, self.pos)),
-            },
-            None => Err(QLParseError::ExpectedOperator(expected, self.pos)),
+        match self.peek().map(|t| &t.token_type) {
+            Some(TokenType::Operator(op)) if *op == expected => {
+                self.advance();
+                Ok(expected)
+            }
+            _ => Err(QLParseError::ExpectedOperator(expected, self.pos)),
         }
     }
 
     /// Expects that the next token is an identifier (either an identifier or a quoted identifier)
     fn expect_ident(&mut self) -> Result<&str, QLParseError> {
-        match self.advance() {
-            Some(tok) => match &tok.token_type {
-                TokenType::Identifier(ident) | TokenType::QuotedIdentifier(ident) => Ok(ident),
-                _ => Err(QLParseError::ExpectedIdent(self.pos)),
-            },
-            None => Err(QLParseError::ExpectedIdent(self.pos)),
+        match self.peek().map(|t| &t.token_type) {
+            Some(TokenType::Identifier(_)) | Some(TokenType::QuotedIdentifier(_)) => {
+                let tok = self.advance().unwrap();
+                match &tok.token_type {
+                    TokenType::Identifier(ident) | TokenType::QuotedIdentifier(ident) => Ok(ident),
+                    _ => unreachable!(),
+                }
+            }
+            _ => Err(QLParseError::ExpectedIdent(self.pos)),
         }
     }
 
     fn expect_keyword(&mut self, expected_kw: Keyword) -> Result<(), QLParseError> {
-        match self.advance() {
-            Some(tok) => match &tok.token_type {
-                TokenType::Keyword(keyword) => {
-                    if *keyword == expected_kw {
-                        Ok(())
-                    } else {
-                        Err(QLParseError::ExpectedKeyword(expected_kw, self.pos))
-                    }
-                }
-                _ => Err(QLParseError::ExpectedKeyword(expected_kw, self.pos)),
-            },
-            None => Err(QLParseError::ExpectedKeyword(expected_kw, self.pos)),
+        match self.peek().map(|t| &t.token_type) {
+            Some(TokenType::Keyword(keyword)) if *keyword == expected_kw => {
+                self.advance();
+                Ok(())
+            }
+            _ => Err(QLParseError::ExpectedKeyword(expected_kw, self.pos)),
         }
     }
 
     fn expect_end_of_query(&mut self) -> Result<(), QLParseError> {
-        match self.advance() {
-            Some(tok) => {
-                if tok.token_type == TokenType::SemiColon {
-                    Ok(())
-                } else {
-                    Err(QLParseError::ExpectedEndOfQuery(self.pos))
-                }
+        match self.peek() {
+            Some(tok) if tok.token_type == TokenType::SemiColon => {
+                self.advance();
+                Ok(())
             }
+            Some(_) => Err(QLParseError::ExpectedEndOfQuery(self.pos)),
             None => Ok(()),
         }
     }
 
-    /// Expects that the next `N` tokens are the keywords listed in `expected_keywords`, returns an
-    /// error if any of them are not, or we reached the end of the stream
-    fn expect_keyword_stream(&mut self, expected_keywords: &[Keyword]) -> Result<(), QLParseError> {
-        for &kw in expected_keywords {
-            self.expect_keyword(kw)?;
-        }
-        Ok(())
-    }
-
-    /// Expects that the next token is one of the keywords, returns an error if
-    /// it is not, or we reached the end of the stream
     fn expect_one_of_keywords(
         &mut self,
         expected_keywords: &[Keyword],
     ) -> Result<Keyword, QLParseError> {
-        match self.advance() {
-            Some(tok) => match &tok.token_type {
-                TokenType::Keyword(keyword) => {
-                    if expected_keywords.contains(keyword) {
-                        Ok(*keyword)
-                    } else {
-                        Err(QLParseError::ExpectedOneOfKeywords(
-                            expected_keywords.to_vec(),
-                            self.pos,
-                        ))
-                    }
-                }
-                _ => Err(QLParseError::ExpectedOneOfKeywords(
-                    expected_keywords.to_vec(),
-                    self.pos,
-                )),
-            },
-            None => Err(QLParseError::ExpectedOneOfKeywords(
+        match self.peek().map(|t| &t.token_type) {
+            Some(TokenType::Keyword(keyword)) if expected_keywords.contains(keyword) => {
+                let kw = *keyword;
+                self.advance();
+                Ok(kw)
+            }
+            _ => Err(QLParseError::ExpectedOneOfKeywords(
                 expected_keywords.to_vec(),
                 self.pos,
             )),
         }
     }
 
-    /// Expects that the next token is one of the given token types, returns an error if
-    /// it is not, or we reached the end of the stream. Consumes the token on success.
     fn expect_one_of_tokens(&mut self, expected: &[TokenType]) -> Result<TokenType, QLParseError> {
-        match self.advance() {
-            Some(tok) => {
-                if expected.iter().any(|e| *e == tok.token_type) {
-                    Ok(tok.token_type.clone())
-                } else {
-                    Err(QLParseError::ExpectedOneOfTokens(
-                        expected.to_vec(),
-                        self.pos,
-                    ))
-                }
+        match self.peek() {
+            Some(tok) if expected.iter().any(|e| *e == tok.token_type) => {
+                let tt = tok.token_type.clone();
+                self.advance();
+                Ok(tt)
             }
-            None => Err(QLParseError::ExpectedOneOfTokens(
+            _ => Err(QLParseError::ExpectedOneOfTokens(
                 expected.to_vec(),
                 self.pos,
             )),
