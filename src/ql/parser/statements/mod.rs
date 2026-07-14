@@ -4,5 +4,6 @@ pub mod delete_stmt;
 pub mod drop_stmt;
 pub mod insert_stmt;
 pub mod load_stmt;
+pub mod select_stmt;
 pub mod update_stmt;
 pub mod use_stmt;

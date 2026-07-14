@@ -14,13 +14,25 @@ drop table table_name;
 
 ## Selecting
 
+With a where clause:
+
 ```sql
 select /* Comma seperated list of columns to select, or a wildcard */
-from   /* [table_name] | [table_1_name table_1_alias], [table_2_name table_2_alias], ... */
+from   /* [table_name], ... */
 where  /* Optional where condition */
 
 ;
 ```
+
+Without a where clause:
+
+```sql
+select /* Comma seperated list of columns to select, or a wildcard */
+from   /* [table_name], ... */
+;
+```
+
+Note that aliases are not supported for tables
 
 ## Creating
 

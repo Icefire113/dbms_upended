@@ -16,6 +16,7 @@ use crate::{
                 drop_stmt::{DropStatement, DropType},
                 insert_stmt::InsertStatement,
                 load_stmt::LoadStatement,
+                select_stmt::SelectStatement,
                 update_stmt::UpdateStatement,
                 use_stmt::UseStatement,
             },
@@ -72,9 +73,6 @@ impl<'a> Parser<'a> {
                     Keyword::Load => self.parse_load(),
                     _ => Err(QLParseError::IllegalToken(tok.token_type.clone(), self.pos)),
                 },
-                TokenType::Illegal(_) => {
-                    Err(QLParseError::IllegalToken(tok.token_type.clone(), self.pos))
-                }
                 TokenType::Unknown(_) => {
                     Err(QLParseError::UnknownToken(tok.token_type.clone(), self.pos))
                 }
@@ -133,7 +131,41 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_select(&mut self) -> Result<QLStatement, QLParseError> {
-        todo!()
+        let filter_cols: Option<Vec<String>> = if self.expect_operator(Operator::Star).is_ok() {
+            None
+        } else {
+            let mut cols: Vec<String> = Vec::new();
+            while let Ok(ident) = self.expect_ident() {
+                cols.push(ident.to_owned());
+                if self.expect_token(TokenType::Comma).is_err() {
+                    break;
+                }
+            }
+            Some(cols)
+        };
+
+        self.expect_keyword(Keyword::From)?;
+
+        let mut tables: Vec<String> = Vec::new();
+        while let Ok(ident) = self.expect_ident() {
+            tables.push(ident.to_owned());
+            if self.expect_token(TokenType::Comma).is_err() {
+                break;
+            }
+        }
+
+        let where_cond: Option<Expr> = if self.expect_keyword(Keyword::Where).is_ok() {
+            Some(self.parse_expr(0)?)
+        } else {
+            None
+        };
+        self.expect_end_of_query()?;
+
+        Ok(QLStatement::Select(SelectStatement {
+            filter_cols,
+            targets: tables,
+            where_clause: where_cond,
+        }))
     }
 
     fn parse_load(&mut self) -> Result<QLStatement, QLParseError> {
