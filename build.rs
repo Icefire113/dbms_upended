@@ -1,10 +1,7 @@
 use std::process::Command;
 
 fn main() {
-    if let Ok(output) = Command::new("git")
-        .args(["rev-parse", "HEAD"])
-        .output()
-    {
+    if let Ok(output) = Command::new("git").args(["rev-parse", "HEAD"]).output() {
         let is_dirty = Command::new("git")
             .args([
                 "diff",
