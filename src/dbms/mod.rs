@@ -2,9 +2,10 @@ use std::{collections::HashMap, fs, path::PathBuf};
 
 use log::info;
 
-use crate::{db::format::DBFormat, dbms::error::DBMSError};
+use crate::dbms::{error::DBMSError, format::DBFormat};
 
 pub mod error;
+pub mod format;
 
 #[derive(Debug)]
 pub struct DBMS {

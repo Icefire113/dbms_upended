@@ -10,8 +10,8 @@ use log::{debug, trace};
 use xxhash_rust::xxh3::xxh3_64;
 
 use crate::{
-    db::error::DBFormatError,
-    table::format::TableFormat,
+    dbms::error::DBFormatError,
+    table::format::ColumnType,
     util::{self, errors::UtilReadError},
 };
 
@@ -89,5 +89,18 @@ impl DBFormat {
         }
 
         Ok(db_format)
+    }
+}
+
+#[derive(Debug, Encode, Decode)]
+pub struct TableFormat {
+    name: String,
+    /// A mapping of column names to type
+    cols: HashMap<String, ColumnType>,
+}
+
+impl TableFormat {
+    pub fn tbl_name(&self) -> &str {
+        &self.name
     }
 }

@@ -1,21 +1,8 @@
-use std::collections::HashMap;
-
 use bitcode::{Decode, Encode};
 
 use crate::ql::{parser::error::QLParseError, tokenizer::token::Keyword};
 
-#[derive(Debug, Encode, Decode)]
-pub struct TableFormat {
-    name: String,
-    /// A mapping of column names to type
-    cols: HashMap<String, ColumnType>,
-}
 
-impl TableFormat {
-    pub fn tbl_name(&self) -> &str {
-        &self.name
-    }
-}
 
 #[derive(Debug, Encode, Decode, PartialEq, Eq)]
 pub enum ColumnType {
@@ -41,10 +28,4 @@ impl TryFrom<Keyword> for ColumnType {
             _ => Err(Self::Error::KeywordIsNotColumnType(value)),
         }
     }
-}
-
-#[derive(Debug, Encode, Decode, PartialEq, Eq)]
-pub enum ColumnModifier {
-    Nullable,
-    Unique,
 }

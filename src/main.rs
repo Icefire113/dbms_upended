@@ -16,10 +16,8 @@ use crate::{
 };
 
 mod core;
-mod db;
 mod dbms;
 mod ql;
-mod row;
 mod table;
 mod util;
 
