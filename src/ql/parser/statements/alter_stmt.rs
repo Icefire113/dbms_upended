@@ -1,4 +1,4 @@
-use crate::{ql::parser::statements::create_stmt::ColumnModifiers, table::format::ColumnType};
+use crate::ql::parser::{column_type::ColumnType, statements::create_stmt::ColumnModifiers};
 
 #[derive(Debug)]
 pub struct AlterStatement {

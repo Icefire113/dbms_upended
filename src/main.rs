@@ -20,7 +20,6 @@ use crate::{
 mod core;
 mod dbms;
 mod ql;
-mod table;
 mod util;
 
 #[tokio::main]

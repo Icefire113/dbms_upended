@@ -4,7 +4,7 @@ use std::{
     path::Path,
 };
 
-use tracing::{debug, trace};
+use tracing::{debug, info, trace};
 use xxhash_rust::xxh3::xxh3_64;
 
 use crate::{
@@ -70,8 +70,14 @@ impl DBFormat {
         trace!("Hash OK");
 
         Ok(match ver {
-            1 => bitcode::decode::<DBFormatV1>(&data)?.migrate().migrate(),
-            2 => bitcode::decode::<DBFormatV2>(&data)?.migrate(),
+            1 => {
+                info!("Migrating db_fmt to latest version {DB_FORMAT_CURRENT_VERSION}");
+                bitcode::decode::<DBFormatV1>(&data)?.migrate().migrate()
+            }
+            2 => {
+                info!("Migrating db_fmt to latest version {DB_FORMAT_CURRENT_VERSION}");
+                bitcode::decode::<DBFormatV2>(&data)?.migrate()
+            }
             3 => bitcode::decode::<DBFormatV3>(&data)?,
             v => return Err(DBFormatLoadError::DbFormatFileUnknownVersion(v)),
         })

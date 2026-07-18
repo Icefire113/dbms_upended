@@ -1,8 +1,6 @@
-use bitcode::{Decode, Encode};
-
 use crate::ql::{parser::error::QLParseError, tokenizer::token::Keyword};
 
-#[derive(Debug, Encode, Decode, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum ColumnType {
     Int,
     BigInt,

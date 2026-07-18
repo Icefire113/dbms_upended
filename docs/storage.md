@@ -15,6 +15,6 @@ format documented [in the spec](format-spec#db_fmt-file-spec).
 ## Table storage
 
 Within each database each table is also stored as a folder, the schema of the
-table (and it's rows) are already described in the `db_fmt`. The actual row data
-of the table is stored in sequential chunks labeled like so: `dta_{seq_id}`, and
-the string pool is stored in sequential chunks labeled like so: `str_pool_{seq_id}`.
+table (and it's rows and indexes) are already described in the `db_fmt`. The
+actual row data of the table is stored in sequential chunks labeled like so: `dt_{seq_id}`,
+and the string pool is stored in sequential chunks labeled like so: `sp_{seq_id}`.

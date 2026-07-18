@@ -1,4 +1,4 @@
-use crate::table::format::ColumnType;
+use crate::ql::parser::column_type::ColumnType;
 
 #[derive(Debug)]
 pub struct CreateStatement {

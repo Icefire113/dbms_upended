@@ -41,11 +41,8 @@ impl DBMS {
         })
     }
 
-    pub fn root(&self) -> &PathBuf {
-        &self.root
-    }
-
-    /// Loads the database(s)'s metadata/ schema from disk
+    /// Loads the database(s)'s metadata/ schema from disk, note that this
+    /// will migrate older schemas to the current format version
     pub fn load_schemas(&mut self) -> Result<(), DBMSError> {
         for dir in fs::read_dir(&self.root)? {
             let dir = dir?;
@@ -63,6 +60,9 @@ impl DBMS {
         Ok(())
     }
 
+    /// Saves the database(s)'s metadata/ schema to disk, note that this will
+    /// save in a format that matches what is currently loaded in memory, this should always
+    /// be the latest format
     pub fn save_schemas(&self) -> Result<(), DBMSError> {
         for (db_name, db_format) in &self.db_schemas {
             let path = self.root.join(&db_name);

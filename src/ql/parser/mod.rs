@@ -1,33 +1,32 @@
 use std::{iter::Peekable, slice::Iter};
 use tracing::trace;
 
-use crate::{
-    ql::{
-        parser::{
-            error::QLParseError,
-            expression::{Expr, literal::Literal, unary_op::UnaryOp},
-            statement::QLStatement,
-            statements::{
-                alter_stmt::{
-                    AlterAction, AlterActionModifiers, AlterMode, AlterObject, AlterStatement,
-                },
-                create_stmt::{ColumnModifiers, CreateStatement, CreateType},
-                delete_stmt::DeleteStatement,
-                drop_stmt::{DropStatement, DropType},
-                insert_stmt::InsertStatement,
-                load_stmt::LoadStatement,
-                select_stmt::{JoinType, SelectStatement},
-                update_stmt::UpdateStatement,
-                use_stmt::UseStatement,
+use crate::ql::{
+    parser::{
+        column_type::ColumnType,
+        error::QLParseError,
+        expression::{Expr, literal::Literal, unary_op::UnaryOp},
+        statement::QLStatement,
+        statements::{
+            alter_stmt::{
+                AlterAction, AlterActionModifiers, AlterMode, AlterObject, AlterStatement,
             },
-        },
-        tokenizer::token::{
-            Keyword, LiteralToken, Operator, Token, TokenType, get_prefix_bp, get_token_bp,
+            create_stmt::{ColumnModifiers, CreateStatement, CreateType},
+            delete_stmt::DeleteStatement,
+            drop_stmt::{DropStatement, DropType},
+            insert_stmt::InsertStatement,
+            load_stmt::LoadStatement,
+            select_stmt::{JoinType, SelectStatement},
+            update_stmt::UpdateStatement,
+            use_stmt::UseStatement,
         },
     },
-    table::format::ColumnType,
+    tokenizer::token::{
+        Keyword, LiteralToken, Operator, Token, TokenType, get_prefix_bp, get_token_bp,
+    },
 };
 
+pub mod column_type;
 pub mod error;
 pub mod expression;
 pub mod statement;
