@@ -46,7 +46,7 @@ impl DBMS {
     }
 
     /// Loads the database(s)'s metadata/ schema from disk
-    pub fn load(&mut self) -> Result<(), DBMSError> {
+    pub fn load_schemas(&mut self) -> Result<(), DBMSError> {
         for dir in fs::read_dir(&self.root)? {
             let dir = dir?;
 
@@ -56,9 +56,17 @@ impl DBMS {
                     .to_str()
                     .ok_or(DBMSError::DbNameIsNotUtf8(dir.file_name()))?
                     .to_owned();
-                let db_format = DBFormat::load(self.root.join(&db_name), &db_name)?;
+                let db_format = DBFormat::load(self.root.join(&db_name))?;
                 self.db_schemas.insert(db_name, db_format);
             }
+        }
+        Ok(())
+    }
+
+    pub fn save_schemas(&self) -> Result<(), DBMSError> {
+        for (db_name, db_format) in &self.db_schemas {
+            let path = self.root.join(&db_name);
+            db_format.save(path)?;
         }
         Ok(())
     }

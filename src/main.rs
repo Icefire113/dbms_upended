@@ -38,7 +38,7 @@ async fn main() -> anyhow::Result<()> {
     );
 
     let mut dbms = DBMS::new(args.db_root, args.create_dbms_root)?;
-    dbms.load()
+    dbms.load_schemas()
         .map_err(|e| {
             error!("Error loading DBMS: {}", e);
             e
@@ -85,6 +85,13 @@ async fn main() -> anyhow::Result<()> {
                 match input {
                     "q" => break,
                     "ddm" => println!("{:#?}", &dbms),
+                    "ss" => dbms.save_schemas().map_or_else(
+                        |e| {
+                            error!("Error saving schemas: {}", e);
+                            ()
+                        },
+                        |_| println!("Database schemas saved"),
+                    ),
                     other => println!("Unknown command '{other}'"),
                 }
                 continue;

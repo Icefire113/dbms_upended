@@ -1,32 +1,37 @@
 use std::{
-    collections::HashMap,
     fs::File,
-    io::{BufReader, ErrorKind},
+    io::{BufReader, BufWriter, ErrorKind, Write},
     path::Path,
 };
 
-use bitcode::{Decode, Encode};
 use tracing::{debug, trace};
 use xxhash_rust::xxh3::xxh3_64;
 
 use crate::{
-    dbms::error::DBFormatLoadError,
+    dbms::{
+        error::{DBFormatLoadError, DBFormatSaveError},
+        format::versions::{v1::DBFormatV1, v2::DBFormatV2, v3::DBFormatV3},
+    },
     util::{self, errors::UtilReadError},
 };
 
+mod versions;
+
+pub use versions::v3::DBFormatV3 as DBFormat;
+
 const DB_FORMAT_FILENAME: &'static str = "db_fmt";
 const DB_FORMAT_MAGIC: [u8; 4] = *b"dbfm";
-const DB_FORMAT_CURRENT_VERSION: u32 = 1;
+const DB_FORMAT_CURRENT_VERSION: u32 = 3;
 
-#[derive(Debug, Encode, Decode)]
-pub struct DBFormat {
-    name: String,
-    tables: HashMap<String, TableFormat>,
+/// Describes a database format that can be migrated to a newer format
+pub(crate) trait Migrate: bitcode::Encode + for<'a> bitcode::Decode<'a> {
+    type Next: bitcode::Encode + for<'a> bitcode::Decode<'a>;
+    fn migrate(self) -> Self::Next;
 }
 
 impl DBFormat {
     /// Loads a database's format from a database folder
-    pub fn load(path: impl AsRef<Path>, db_name: &str) -> Result<Self, DBFormatLoadError> {
+    pub fn load(path: impl AsRef<Path>) -> Result<Self, DBFormatLoadError> {
         let path = path.as_ref();
         debug!("Loading db {}", path.display());
         let file = File::open(path.join(DB_FORMAT_FILENAME))
@@ -38,14 +43,11 @@ impl DBFormat {
         }
 
         let ver: u32 = util::read_u32_le(&mut reader)?;
-        if DB_FORMAT_CURRENT_VERSION != ver {
-            return Err(DBFormatLoadError::DbFormatFileUnknownVersion(ver));
-        }
-
+        trace!("format version: {}", ver);
         let data_hash: u64 = util::read_u64_be(&mut reader)?;
+        trace!("hash in file: {:X}", data_hash);
         let data_size: u64 = util::read_u64_le(&mut reader)?;
         trace!("expected data size: {}", data_size);
-        trace!("hash in file: {:X}", data_hash);
         let data: Vec<u8> = util::read_n_bytes(
             &mut reader,
             data_size
@@ -67,49 +69,31 @@ impl DBFormat {
         }
         trace!("Hash OK");
 
-        let db_format: DBFormat = bitcode::decode(&data)?;
-        if db_format.name != db_name {
-            trace!(
-                "listed db name: {}, format db name: {}",
-                db_name, db_format.name
-            );
-            return Err(DBFormatLoadError::DbFormatMismatchedName);
-        }
-
-        for (tbl_name, tbl_format) in &db_format.tables {
-            if tbl_name != tbl_format.tbl_name() {
-                trace!(
-                    "listed table name: {}, format table name: {}",
-                    tbl_name,
-                    tbl_format.tbl_name()
-                );
-                return Err(DBFormatLoadError::DbFormatMismatchedTableName);
-            }
-        }
-
-        Ok(db_format)
+        Ok(match ver {
+            1 => bitcode::decode::<DBFormatV1>(&data)?.migrate().migrate(),
+            2 => bitcode::decode::<DBFormatV2>(&data)?.migrate(),
+            3 => bitcode::decode::<DBFormatV3>(&data)?,
+            v => return Err(DBFormatLoadError::DbFormatFileUnknownVersion(v)),
+        })
     }
-}
 
-#[derive(Debug, Encode, Decode)]
-pub struct TableFormat {
-    name: String,
-    /// A mapping of column names to type
-    cols: HashMap<String, ColumnType>,
-}
+    /// Saves a database's format to a database folder
+    pub fn save(&self, path: impl AsRef<Path>) -> Result<(), DBFormatSaveError> {
+        let path = path.as_ref().join(DB_FORMAT_FILENAME);
+        let file = File::options()
+            .write(true)
+            .read(true)
+            .truncate(true)
+            .open(path)?;
+        let mut writer = BufWriter::new(file);
+        let data: Vec<u8> = bitcode::encode(self);
+        let hash: u64 = xxh3_64(&data);
+        writer.write(&DB_FORMAT_MAGIC)?;
+        writer.write(&DB_FORMAT_CURRENT_VERSION.to_le_bytes())?;
+        writer.write(&hash.to_be_bytes())?;
+        writer.write(&data.len().to_le_bytes())?;
+        writer.write(&data)?;
 
-#[derive(Debug, Encode, Decode, PartialEq, Eq)]
-pub enum ColumnType {
-    Int,
-    BigInt,
-    Float,
-    BigFloat,
-    Bool,
-    String,
-}
-
-impl TableFormat {
-    pub fn tbl_name(&self) -> &str {
-        &self.name
+        Ok(())
     }
 }

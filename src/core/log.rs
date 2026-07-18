@@ -9,6 +9,7 @@ pub fn init_logging() -> anyhow::Result<()> {
     let file_layer = fmt::layer()
         .with_file(true)
         .with_target(false)
+        .with_line_number(true)
         .with_ansi(false)
         .with_writer(Mutex::new(log_file));
 
@@ -19,6 +20,7 @@ pub fn init_logging() -> anyhow::Result<()> {
     let stderr_layer = fmt::layer()
         .with_file(true)
         .with_ansi(true)
+        .with_line_number(true)
         .with_target(false)
         .with_writer(std::io::stderr)
         .with_filter(env_filter);
