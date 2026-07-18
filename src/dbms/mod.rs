@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fs, path::PathBuf};
 
-use log::info;
+use tracing::info;
 
 use crate::dbms::{error::DBMSError, format::DBFormat};
 

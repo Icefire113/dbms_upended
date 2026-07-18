@@ -3,11 +3,13 @@ use std::{fs::File, io::Read};
 use anyhow::Context;
 
 use dialoguer::{BasicHistory, Input};
-use env_logger::{Builder, Env, TimestampPrecision};
-use log::{debug, error, info};
+use tracing::{debug, error, info};
 
 use crate::{
-    core::cli::{Args, parse_args},
+    core::{
+        cli::{Args, parse_args},
+        log::init_logging,
+    },
     dbms::DBMS,
     ql::{
         parser::{Parser, statement::QLStatement},
@@ -23,12 +25,7 @@ mod util;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    Builder::from_env(Env::default().default_filter_or("info"))
-        .format_file(true)
-        .format_line_number(true)
-        .format_timestamp(Some(TimestampPrecision::Millis))
-        .format_target(false)
-        .init();
+    init_logging()?;
     let args: Args = match parse_args() {
         Some(args) => args,
         // If we return none, then the arg parser has run a once out command, and we should exit

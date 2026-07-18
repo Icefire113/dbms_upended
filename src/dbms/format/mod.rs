@@ -6,18 +6,17 @@ use std::{
 };
 
 use bitcode::{Decode, Encode};
-use log::{debug, trace};
+use tracing::{debug, trace};
 use xxhash_rust::xxh3::xxh3_64;
 
 use crate::{
-    dbms::error::DBFormatError,
-    table::format::ColumnType,
+    dbms::error::DBFormatLoadError,
     util::{self, errors::UtilReadError},
 };
 
 const DB_FORMAT_FILENAME: &'static str = "db_fmt";
 const DB_FORMAT_MAGIC: [u8; 4] = *b"dbfm";
-const DB_FORMAT_VERSION: u32 = 1;
+const DB_FORMAT_CURRENT_VERSION: u32 = 1;
 
 #[derive(Debug, Encode, Decode)]
 pub struct DBFormat {
@@ -27,20 +26,20 @@ pub struct DBFormat {
 
 impl DBFormat {
     /// Loads a database's format from a database folder
-    pub fn load(path: impl AsRef<Path>, db_name: &str) -> Result<Self, DBFormatError> {
+    pub fn load(path: impl AsRef<Path>, db_name: &str) -> Result<Self, DBFormatLoadError> {
         let path = path.as_ref();
         debug!("Loading db {}", path.display());
         let file = File::open(path.join(DB_FORMAT_FILENAME))
-            .map_err(|e| DBFormatError::LoadingDbFormatFile(e))?;
+            .map_err(|e| DBFormatLoadError::LoadingDbFormatFile(e))?;
         let mut reader = BufReader::new(file);
 
         if DB_FORMAT_MAGIC != util::read_n_bytes(&mut reader, 4)?.as_slice() {
-            return Err(DBFormatError::DbFormatInvalidHeaderMagic);
+            return Err(DBFormatLoadError::DbFormatInvalidHeaderMagic);
         }
 
         let ver: u32 = util::read_u32_le(&mut reader)?;
-        if DB_FORMAT_VERSION != ver {
-            return Err(DBFormatError::DbFormatFileUnknownVersion(ver));
+        if DB_FORMAT_CURRENT_VERSION != ver {
+            return Err(DBFormatLoadError::DbFormatFileUnknownVersion(ver));
         }
 
         let data_hash: u64 = util::read_u64_be(&mut reader)?;
@@ -55,16 +54,16 @@ impl DBFormat {
         )
         .map_err(|e| match &e {
             UtilReadError::IoError(error) => match error.kind() {
-                ErrorKind::UnexpectedEof => DBFormatError::DbFormatFileCorrupted,
-                _ => DBFormatError::UtilReadError(e),
+                ErrorKind::UnexpectedEof => DBFormatLoadError::DbFormatFileCorrupted,
+                _ => DBFormatLoadError::UtilReadError(e),
             },
-            UtilReadError::Utf8ParseError(_) => DBFormatError::UtilReadError(e),
+            UtilReadError::Utf8ParseError(_) => DBFormatLoadError::UtilReadError(e),
         })?;
 
         let hash = xxh3_64(&data);
         if hash != data_hash {
             trace!("expected hash: {:X}, got hash: {:X}", data_hash, hash);
-            return Err(DBFormatError::DbFormatFileInvalidChecksum);
+            return Err(DBFormatLoadError::DbFormatFileInvalidChecksum);
         }
         trace!("Hash OK");
 
@@ -74,7 +73,7 @@ impl DBFormat {
                 "listed db name: {}, format db name: {}",
                 db_name, db_format.name
             );
-            return Err(DBFormatError::DbFormatMismatchedName);
+            return Err(DBFormatLoadError::DbFormatMismatchedName);
         }
 
         for (tbl_name, tbl_format) in &db_format.tables {
@@ -84,7 +83,7 @@ impl DBFormat {
                     tbl_name,
                     tbl_format.tbl_name()
                 );
-                return Err(DBFormatError::DbFormatMismatchedTableName);
+                return Err(DBFormatLoadError::DbFormatMismatchedTableName);
             }
         }
 
@@ -97,6 +96,16 @@ pub struct TableFormat {
     name: String,
     /// A mapping of column names to type
     cols: HashMap<String, ColumnType>,
+}
+
+#[derive(Debug, Encode, Decode, PartialEq, Eq)]
+pub enum ColumnType {
+    Int,
+    BigInt,
+    Float,
+    BigFloat,
+    Bool,
+    String,
 }
 
 impl TableFormat {

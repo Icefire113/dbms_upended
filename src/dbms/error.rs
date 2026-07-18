@@ -16,11 +16,11 @@ pub enum DBMSError {
     DbNameIsNotUtf8(OsString),
 
     #[error("Error loading database")]
-    DbLoadError(#[from] DBFormatError),
+    DbLoadError(#[from] DBFormatLoadError),
 }
 
 #[derive(Debug, Error)]
-pub enum DBFormatError {
+pub enum DBFormatLoadError {
     #[error("IO Error: {0}")]
     Io(#[from] io::Error),
 

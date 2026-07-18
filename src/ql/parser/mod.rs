@@ -1,5 +1,5 @@
-use log::trace;
 use std::{iter::Peekable, slice::Iter};
+use tracing::trace;
 
 use crate::{
     ql::{

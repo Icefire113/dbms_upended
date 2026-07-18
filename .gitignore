@@ -1,5 +1,6 @@
 /target
 /dbms_root
 
+dbms.log
 *.sql
 *.bin
