@@ -41,12 +41,6 @@ pub enum DBFormatLoadError {
     #[error("Invalid database format file magic")]
     DbFormatInvalidHeaderMagic,
 
-    #[error("Mismatched database name in format file")]
-    DbFormatMismatchedName,
-
-    #[error("Mismatched table name in format file")]
-    DbFormatMismatchedTableName,
-
     #[error("Database format file not found")]
     LoadingDbFormatFile(#[source] io::Error),
 
