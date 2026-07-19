@@ -1,6 +1,17 @@
-use std::process::Command;
+use std::{env, process::Command};
 
 fn main() {
+    // check if target is 32bit
+    let target = std::env::var("TARGET").unwrap();
+    let ptr_size = env::var("CARGO_CFG_TARGET_POINTER_WIDTH")
+        .expect("CARGO_CFG_TARGET_POINTER_WIDTH is not set!");
+    if ptr_size != "64" {
+        panic!(
+            "This crate is not supported on 32-bit targets, {} has {}-bit pointer width",
+            target, ptr_size
+        );
+    }
+
     if let Ok(output) = Command::new("git").args(["rev-parse", "HEAD"]).output() {
         let is_dirty = Command::new("git")
             .args([
