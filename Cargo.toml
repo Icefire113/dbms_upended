@@ -4,13 +4,13 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-anyhow = { version = "1.0.103", features = ["backtrace"] }
+anyhow = { version = "1.0.104", features = ["backtrace"] }
 strum = { version = "0.28.0", features = ["derive"] }
-thiserror = "2.0.18"
+thiserror = "2.0.19"
 clap = { version = "4.6.2", features = ["env", "cargo", "derive"] }
 tokio = { version = "1.53.0", features = ["full"] }
 bitcode = { version = "0.6.9", features = ["serde"] }
-serde = { version = "1.0.228", features = ["serde_derive", "alloc"] }
+serde = { version = "1.0.229", features = ["serde_derive", "alloc"] }
 indexmap = { version = "2.14.0", features = ["serde"] }
 xxhash-rust = { version = "0.8.17", features = ["xxh3", "const_xxh3"] }
 dialoguer = { version = "0.12.0", features = ["history", "completion"] }
