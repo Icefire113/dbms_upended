@@ -1,6 +1,7 @@
 use std::{env, process::Command};
 
 fn main() {
+    println!("cargo:rerun-if-changed=build.rs");
     // check if target is 32bit
     let target = std::env::var("TARGET").unwrap();
     let ptr_size = env::var("CARGO_CFG_TARGET_POINTER_WIDTH")
