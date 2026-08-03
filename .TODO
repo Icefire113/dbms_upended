@@ -1,5 +1,6 @@
 ☐ Move database loading to be async, as we can load multiple databases at once as they are not dependent
 ☐ A better way to report illegal/ unknown tokens when parsing
+☐ Inside the parser (or tokenizer) we should store a mapping of token indexes to line and column numbers to make it easier to report invalid/ illegal token locations
 ☐ Remove the `Token` wrapper around `TokenType`
 ☐ Completion see: https://github.com/console-rs/dialoguer/blob/main/examples/completion.rs
 ☐ Rewrite CLI

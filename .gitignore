@@ -1,6 +1,15 @@
 /target
+
+# The root folder for the database
 /dbms_root
 
+# Root folder for running tests from
+/test_root
+
+# Logs
 dbms.log
+
+# Any sql files
 *.sql
+
 *.bin
