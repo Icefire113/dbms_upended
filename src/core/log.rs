@@ -10,9 +10,16 @@ pub fn init_logging() -> anyhow::Result<()> {
         .with_file(true)
         .with_target(false)
         .with_line_number(true)
+        .with_thread_ids(true)
+        .with_thread_names(true)
         .with_ansi(false)
         .with_writer(Mutex::new(log_file));
 
+    #[cfg(debug_assertions)]
+    let env_filter = EnvFilter::builder()
+        .with_default_directive(LevelFilter::TRACE.into())
+        .from_env_lossy();
+    #[cfg(not(debug_assertions))]
     let env_filter = EnvFilter::builder()
         .with_default_directive(LevelFilter::INFO.into())
         .from_env_lossy();
@@ -20,6 +27,8 @@ pub fn init_logging() -> anyhow::Result<()> {
     let stderr_layer = fmt::layer()
         .with_file(true)
         .with_ansi(true)
+        .with_thread_ids(true)
+        .with_thread_names(true)
         .with_line_number(true)
         .with_target(false)
         .with_writer(std::io::stderr)
