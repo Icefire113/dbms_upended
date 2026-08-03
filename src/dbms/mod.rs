@@ -1,9 +1,14 @@
-use std::{collections::HashMap, fs, path::PathBuf};
+use std::{
+    collections::HashMap,
+    fs,
+    path::{Path, PathBuf},
+};
 
 use tracing::info;
 
 use crate::dbms::{error::DBMSError, format::DBFormat};
 
+pub mod bplus_tree;
 pub mod error;
 pub mod format;
 
@@ -14,8 +19,8 @@ pub struct DBMS {
 }
 
 impl DBMS {
-    pub fn new(root: impl Into<PathBuf>, create: bool) -> Result<Self, DBMSError> {
-        let root_path = root.into();
+    pub fn new(root: impl AsRef<Path>, create: bool) -> Result<Self, DBMSError> {
+        let root_path = root.as_ref();
         let root = match root_path.canonicalize() {
             Ok(root) => root,
             Err(e) => {

@@ -10,7 +10,7 @@ use crate::{
         cli::{Args, parse_args},
         log::init_logging,
     },
-    dbms::DBMS,
+    dbms::{DBMS, bplus_tree},
     ql::{
         parser::{Parser, statement::QLStatement},
         tokenizer::{errors::SQLTokenizeError, token::Token, tokenizer::Tokenizer},
@@ -34,6 +34,10 @@ async fn main() -> anyhow::Result<()> {
         "Starting dbms v{}+{}",
         env!("CARGO_PKG_VERSION"),
         env!("GIT_HASH")
+    );
+    debug!(
+        "B+ Tree compiled with page size {}",
+        bplus_tree::page_size()
     );
 
     let mut dbms = DBMS::new(args.db_root, args.create_dbms_root)?;
