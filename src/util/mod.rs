@@ -27,6 +27,38 @@ pub(crate) fn read_n_bytes<R: Read>(reader: &mut R, n: usize) -> Result<Vec<u8>,
 }
 
 #[allow(dead_code)]
+/// Reads `n` bytes from the reader, useful when you want to avoid allocating a `Vec`
+pub(crate) fn read_n_bytes_const<R: Read, const N: usize>(
+    reader: &mut R,
+) -> Result<[u8; N], UtilReadError> {
+    let mut buff = [0u8; N];
+    reader.read_exact(&mut buff)?;
+    Ok(buff)
+}
+
+#[allow(dead_code)]
+/// Reads `n` bytes from the reader into a caller supplied buffer
+pub(crate) fn read_n_bytes_to_buff<R: Read>(
+    reader: &mut R,
+    buff: &mut Vec<u8>,
+    n: usize,
+) -> Result<(), UtilReadError> {
+    reader.read_exact(&mut buff[..n])?;
+    Ok(())
+}
+
+#[allow(dead_code)]
+/// Reads `n` bytes from the reader into a caller supplied buffer
+pub(crate) fn read_n_bytes_to_slice<R: Read>(
+    reader: &mut R,
+    buff: &mut [u8],
+    n: usize,
+) -> Result<(), UtilReadError> {
+    reader.read_exact(&mut buff[..n])?;
+    Ok(())
+}
+
+#[allow(dead_code)]
 /// Reads a u8 from the reader
 pub(crate) fn read_u8_le<R: Read>(reader: &mut R) -> Result<u8, UtilReadError> {
     let mut buff = [0u8; size_of::<u8>()];
