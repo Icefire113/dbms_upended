@@ -2,7 +2,7 @@ use thiserror::Error;
 
 use crate::ql::{
     parser::expression::{binary_op::BinaryOp, literal::Literal},
-    tokenizer::token::TokenType,
+    tokenizer::token::Token,
 };
 
 #[derive(Debug, Error)]
@@ -14,5 +14,5 @@ pub enum BinaryOperatorApplyError {
 #[derive(Debug, Error)]
 pub enum TokenToOperatorError {
     #[error("Invalid operator {0:?}")]
-    InvalidOperator(TokenType),
+    InvalidOperator(Token),
 }

@@ -4,7 +4,7 @@ use strum::EnumIter;
 
 /// Represents the type of token
 #[derive(Debug, PartialEq, Clone)]
-pub enum TokenType {
+pub enum Token {
     /// A literal value
     Literal(LiteralToken),
     /// Something like a table or column name
@@ -23,9 +23,9 @@ pub enum TokenType {
     SemiColon,
 
     /// An illegal/ unexpected token at position `pos`, contains the position
-    Illegal(usize),
+    Illegal(usize, String),
     /// A token that we don't recognize, contanins the position
-    Unknown(usize),
+    Unknown(usize, String),
 }
 
 /// Represents an operator
@@ -45,24 +45,24 @@ pub enum Operator {
 }
 
 /// Gets the binding power of a given token, used for pratt parsing
-pub fn get_token_bp(op: &TokenType) -> Option<(u8, u8)> {
+pub fn get_token_bp(op: &Token) -> Option<(u8, u8)> {
     match op {
-        TokenType::Operator(op) => match op {
+        Token::Operator(op) => match op {
             Operator::Equals | Operator::NotEq => Some((5, 6)),
             Operator::Lt | Operator::Lte | Operator::Gt | Operator::Gte => Some((7, 8)),
             Operator::Plus | Operator::Minus => Some((9, 10)),
             Operator::Star | Operator::Divide | Operator::Modulus => Some((11, 12)),
         },
-        TokenType::Keyword(Keyword::Or) => Some((1, 2)),
-        TokenType::Keyword(Keyword::And) => Some((3, 4)),
+        Token::Keyword(Keyword::Or) => Some((1, 2)),
+        Token::Keyword(Keyword::And) => Some((3, 4)),
         _ => None,
     }
 }
 
 /// Gets the prefix binding power, used for pratt parsing
-pub fn get_prefix_bp(tok: &TokenType) -> Option<u8> {
+pub fn get_prefix_bp(tok: &Token) -> Option<u8> {
     match tok {
-        TokenType::Operator(Operator::Minus) | TokenType::Keyword(Keyword::Not) => Some(13),
+        Token::Operator(Operator::Minus) | Token::Keyword(Keyword::Not) => Some(13),
         _ => None,
     }
 }
@@ -192,23 +192,5 @@ impl Display for Keyword {
             Self::Cross => "CROSS",
         };
         write!(f, "{s}")
-    }
-}
-
-/// Represents a single token, its type, and the string that we parsed it from (mainly for debugging)
-#[derive(Debug, PartialEq)]
-pub struct Token {
-    pub token_type: TokenType,
-    // TODO: do we even need this anymore? iirc it was only for debugging
-    pub value: String,
-}
-
-impl Token {
-    /// Creates a new token
-    pub fn new(token_type: TokenType, value: impl Into<String>) -> Self {
-        Self {
-            token_type,
-            value: value.into(),
-        }
     }
 }

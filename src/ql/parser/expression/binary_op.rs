@@ -4,7 +4,7 @@ use crate::ql::{
         literal::Literal,
         traits::BinaryApply,
     },
-    tokenizer::token::{Keyword, Operator, TokenType},
+    tokenizer::token::{Keyword, Operator, Token},
 };
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -54,24 +54,24 @@ impl BinaryApply<Literal> for BinaryOp {
     }
 }
 
-impl TryFrom<TokenType> for BinaryOp {
+impl TryFrom<Token> for BinaryOp {
     type Error = TokenToOperatorError;
 
-    fn try_from(tok: TokenType) -> Result<Self, Self::Error> {
+    fn try_from(tok: Token) -> Result<Self, Self::Error> {
         match tok {
-            TokenType::Operator(Operator::Equals) => Ok(BinaryOp::Eq),
-            TokenType::Operator(Operator::NotEq) => Ok(BinaryOp::NotEq),
-            TokenType::Operator(Operator::Lt) => Ok(BinaryOp::Lt),
-            TokenType::Operator(Operator::Lte) => Ok(BinaryOp::LtEq),
-            TokenType::Operator(Operator::Gt) => Ok(BinaryOp::Gt),
-            TokenType::Operator(Operator::Gte) => Ok(BinaryOp::GtEq),
-            TokenType::Operator(Operator::Plus) => Ok(BinaryOp::Plus),
-            TokenType::Operator(Operator::Minus) => Ok(BinaryOp::Minus),
-            TokenType::Operator(Operator::Star) => Ok(BinaryOp::Mul),
-            TokenType::Operator(Operator::Divide) => Ok(BinaryOp::Div),
-            TokenType::Operator(Operator::Modulus) => Ok(BinaryOp::Mod),
-            TokenType::Keyword(Keyword::And) => Ok(BinaryOp::And),
-            TokenType::Keyword(Keyword::Or) => Ok(BinaryOp::Or),
+            Token::Operator(Operator::Equals) => Ok(BinaryOp::Eq),
+            Token::Operator(Operator::NotEq) => Ok(BinaryOp::NotEq),
+            Token::Operator(Operator::Lt) => Ok(BinaryOp::Lt),
+            Token::Operator(Operator::Lte) => Ok(BinaryOp::LtEq),
+            Token::Operator(Operator::Gt) => Ok(BinaryOp::Gt),
+            Token::Operator(Operator::Gte) => Ok(BinaryOp::GtEq),
+            Token::Operator(Operator::Plus) => Ok(BinaryOp::Plus),
+            Token::Operator(Operator::Minus) => Ok(BinaryOp::Minus),
+            Token::Operator(Operator::Star) => Ok(BinaryOp::Mul),
+            Token::Operator(Operator::Divide) => Ok(BinaryOp::Div),
+            Token::Operator(Operator::Modulus) => Ok(BinaryOp::Mod),
+            Token::Keyword(Keyword::And) => Ok(BinaryOp::And),
+            Token::Keyword(Keyword::Or) => Ok(BinaryOp::Or),
             other => Err(TokenToOperatorError::InvalidOperator(other.clone())),
         }
     }

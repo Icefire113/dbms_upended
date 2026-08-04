@@ -134,10 +134,10 @@ fn tokenize_str(str: &str, source_file: &str) -> Result<Vec<Token>, SQLTokenizeE
     let tokens: Vec<Token> = tokenizer.tokenize().map_err(|e| {
         match &e {
             SQLTokenizeError::IllegalToken(tok, line, col) => {
-                error!("Illegal token `{tok}` at: {source_file}:{line}:{col}")
+                error!("Illegal token `{:?}` at: {source_file}:{line}:{col}", tok)
             }
             SQLTokenizeError::UnknownToken(tok, line, col) => {
-                error!("Unknown token `{tok}` at: {source_file}:{line}:{col}")
+                error!("Unknown token `{:?}` at: {source_file}:{line}:{col}", tok)
             }
         };
         e

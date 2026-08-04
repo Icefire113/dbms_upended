@@ -21,9 +21,7 @@ use crate::ql::{
             use_stmt::UseStatement,
         },
     },
-    tokenizer::token::{
-        Keyword, LiteralToken, Operator, Token, TokenType, get_prefix_bp, get_token_bp,
-    },
+    tokenizer::token::{Keyword, LiteralToken, Operator, Token, get_prefix_bp, get_token_bp},
 };
 
 pub mod column_type;
@@ -59,8 +57,8 @@ impl<'a> Parser<'a> {
 
     fn parse_single_query(&mut self) -> Result<QLStatement, QLParseError> {
         match self.advance() {
-            Some(tok) => match &tok.token_type {
-                TokenType::Keyword(keyword) => match keyword {
+            Some(tok) => match &tok {
+                Token::Keyword(keyword) => match keyword {
                     Keyword::Create => self.parse_create(),
                     Keyword::Select => self.parse_select(),
                     Keyword::Insert => self.parse_insert(),
@@ -70,12 +68,10 @@ impl<'a> Parser<'a> {
                     Keyword::Drop => self.parse_drop(),
                     Keyword::Use => self.parse_use(),
                     Keyword::Load => self.parse_load(),
-                    _ => Err(QLParseError::IllegalToken(tok.token_type.clone(), self.pos)),
+                    _ => Err(QLParseError::IllegalToken(tok.clone(), self.pos)),
                 },
-                TokenType::Unknown(_) => {
-                    Err(QLParseError::UnknownToken(tok.token_type.clone(), self.pos))
-                }
-                token_type => Err(QLParseError::IllegalToken(token_type.clone(), self.pos)),
+                Token::Unknown(_, _) => Err(QLParseError::UnknownToken(tok.clone(), self.pos)),
+                &token_type => Err(QLParseError::IllegalToken(token_type.clone(), self.pos)),
             },
             None => Err(QLParseError::EOF),
         }
@@ -89,15 +85,15 @@ impl<'a> Parser<'a> {
         match self.expect_one_of_keywords(&[Keyword::Table, Keyword::Index, Keyword::Database])? {
             Keyword::Table => {
                 let tbl_name: String = self.expect_ident()?.to_owned();
-                self.expect_token(TokenType::LParen)?;
+                self.expect_token(Token::LParen)?;
                 let mut columns: Vec<(String, ColumnType, ColumnModifiers)> = Vec::new();
                 loop {
                     columns.push(self.expect_column_decl()?);
 
                     // After a column: either a comma (more columns follow) or a closing paren (done).
-                    match self.expect_one_of_tokens(&[TokenType::Comma, TokenType::RParen])? {
-                        TokenType::Comma => continue,
-                        TokenType::RParen => break,
+                    match self.expect_one_of_tokens(&[Token::Comma, Token::RParen])? {
+                        Token::Comma => continue,
+                        Token::RParen => break,
                         _ => unreachable!(),
                     }
                 }
@@ -136,7 +132,7 @@ impl<'a> Parser<'a> {
             let mut cols: Vec<String> = Vec::new();
             while let Ok(ident) = self.expect_ident() {
                 cols.push(ident.to_owned());
-                if self.expect_token(TokenType::Comma).is_err() {
+                if self.expect_token(Token::Comma).is_err() {
                     break;
                 }
             }
@@ -218,7 +214,7 @@ impl<'a> Parser<'a> {
         let mut rows: Vec<Vec<Literal>> = Vec::new();
         while let Ok(row) = self.expect_literal_list() {
             rows.push(row);
-            if self.expect_token(TokenType::Comma).is_err() {
+            if self.expect_token(Token::Comma).is_err() {
                 break;
             }
         }
@@ -240,7 +236,7 @@ impl<'a> Parser<'a> {
             self.expect_operator(Operator::Equals)?;
             let val = self.expect_literal()?;
             cols.push((col_name, val));
-            if self.expect_token(TokenType::Comma).is_err() {
+            if self.expect_token(Token::Comma).is_err() {
                 break;
             }
         }
@@ -370,13 +366,13 @@ impl<'a> Parser<'a> {
         // then while we can keep grabbing more things which a left binding power that is greater than
         // the minimum, we keep adding them to the expression tree
         loop {
-            let op = match self.peek() {
-                Some(t) => t.token_type.clone(),
+            let op: &Token = match self.peek() {
+                Some(&t) => t,
                 None => break,
             };
 
             // Handle special cases like `is null` or `is not null`
-            if op == TokenType::Keyword(Keyword::Is) {
+            if op == &Token::Keyword(Keyword::Is) {
                 self.advance();
                 let l_bind_pow = 7u8;
                 if l_bind_pow < min_bp {
@@ -406,7 +402,7 @@ impl<'a> Parser<'a> {
                 self.advance();
                 root = Expr::BinaryOp {
                     lhs: Box::new(root),
-                    op: op.try_into()?,
+                    op: op.clone().try_into()?,
                     rhs: Box::new(self.parse_expr(r_bind_pow)?),
                 }
             } else {
@@ -423,29 +419,29 @@ impl<'a> Parser<'a> {
         if let Ok(lit) = self.expect_literal() {
             Ok(Expr::Literal(lit))
         } else if self.expect_keyword(Keyword::Not).is_ok() {
-            let bind_pow = get_prefix_bp(&TokenType::Keyword(Keyword::Not))
+            let bind_pow = get_prefix_bp(&Token::Keyword(Keyword::Not))
                 .expect("Token does not have a registered binding power");
             let expr = self.parse_expr(bind_pow)?;
             Ok(Expr::UnaryOp {
-                op: TokenType::Keyword(Keyword::Not).try_into()?,
+                op: Token::Keyword(Keyword::Not).try_into()?,
                 expr: Box::new(expr),
             })
         } else if self.expect_operator(Operator::Minus).is_ok() {
-            let bind_pow = get_prefix_bp(&TokenType::Operator(Operator::Minus))
+            let bind_pow = get_prefix_bp(&Token::Operator(Operator::Minus))
                 .expect("Token does not have a registered binding power");
             let expr = self.parse_expr(bind_pow)?;
             Ok(Expr::UnaryOp {
-                op: TokenType::Operator(Operator::Minus).try_into()?,
+                op: Token::Operator(Operator::Minus).try_into()?,
                 expr: Box::new(expr),
             })
-        } else if self.expect_token(TokenType::LParen).is_ok() {
+        } else if self.expect_token(Token::LParen).is_ok() {
             let expr = self.parse_expr(0)?;
-            self.expect_token(TokenType::RParen)?;
+            self.expect_token(Token::RParen)?;
             Ok(expr)
         } else if let Ok(ident) = self.expect_ident() {
             Ok(Expr::Identifier(ident.to_owned()))
-        } else if let Some(t) = self.peek() {
-            Err(QLParseError::UnknownToken(t.token_type.clone(), self.pos))
+        } else if let Some(&t) = self.peek() {
+            Err(QLParseError::UnknownToken(t.clone(), self.pos))
         } else {
             Err(QLParseError::EOF)
         }
@@ -500,27 +496,27 @@ impl<'a> Parser<'a> {
     /// (basically a comma seperated list of literal values with parenthesis around them)
     fn expect_literal_list(&mut self) -> Result<Vec<Literal>, QLParseError> {
         let mut lits: Vec<Literal> = Vec::new();
-        self.expect_token(TokenType::LParen)?;
+        self.expect_token(Token::LParen)?;
         while let Ok(lit) = self.expect_literal() {
             lits.push(lit);
-            if self.expect_token(TokenType::Comma).is_err() {
+            if self.expect_token(Token::Comma).is_err() {
                 break;
             }
         }
-        self.expect_token(TokenType::RParen)?;
+        self.expect_token(Token::RParen)?;
         Ok(lits)
     }
 
     fn expect_identifier_list(&mut self) -> Result<Vec<String>, QLParseError> {
-        self.expect_token(TokenType::LParen)?;
+        self.expect_token(Token::LParen)?;
         let mut idents: Vec<String> = Vec::new();
         while let Ok(ident) = self.expect_ident() {
             idents.push(ident.to_owned());
-            if self.expect_token(TokenType::Comma).is_err() {
+            if self.expect_token(Token::Comma).is_err() {
                 break;
             }
         }
-        self.expect_token(TokenType::RParen)?;
+        self.expect_token(Token::RParen)?;
 
         Ok(idents)
     }
@@ -547,7 +543,7 @@ impl<'a> Parser<'a> {
 
     fn expect_literal_null(&mut self) -> Result<(), QLParseError> {
         match self.peek() {
-            Some(tok) if matches!(tok.token_type, TokenType::Keyword(Keyword::Null)) => {
+            Some(tok) if matches!(tok, Token::Keyword(Keyword::Null)) => {
                 self.advance();
                 Ok(())
             }
@@ -556,12 +552,12 @@ impl<'a> Parser<'a> {
     }
 
     fn expect_literal_bool(&mut self) -> Result<bool, QLParseError> {
-        match self.peek().map(|t| &t.token_type) {
-            Some(TokenType::Keyword(Keyword::True)) => {
+        match self.peek() {
+            Some(Token::Keyword(Keyword::True)) => {
                 self.advance();
                 Ok(true)
             }
-            Some(TokenType::Keyword(Keyword::False)) => {
+            Some(Token::Keyword(Keyword::False)) => {
                 self.advance();
                 Ok(false)
             }
@@ -570,8 +566,8 @@ impl<'a> Parser<'a> {
     }
 
     fn expect_literal_f64(&mut self) -> Result<f64, QLParseError> {
-        match self.peek().map(|t| &t.token_type) {
-            Some(TokenType::Literal(LiteralToken::BigFloat(n))) => {
+        match self.peek() {
+            Some(Token::Literal(LiteralToken::BigFloat(n))) => {
                 self.advance();
                 Ok(*n)
             }
@@ -580,8 +576,8 @@ impl<'a> Parser<'a> {
     }
 
     fn expect_literal_f32(&mut self) -> Result<f32, QLParseError> {
-        match self.peek().map(|t| &t.token_type) {
-            Some(TokenType::Literal(LiteralToken::Float(n))) => {
+        match self.peek() {
+            Some(Token::Literal(LiteralToken::Float(n))) => {
                 self.advance();
                 Ok(*n)
             }
@@ -590,8 +586,8 @@ impl<'a> Parser<'a> {
     }
 
     fn expect_literal_i64(&mut self) -> Result<i64, QLParseError> {
-        match self.peek().map(|t| &t.token_type) {
-            Some(TokenType::Literal(LiteralToken::BigInt(n))) => {
+        match self.peek() {
+            Some(Token::Literal(LiteralToken::BigInt(n))) => {
                 self.advance();
                 Ok(*n)
             }
@@ -600,8 +596,8 @@ impl<'a> Parser<'a> {
     }
 
     fn expect_literal_i32(&mut self) -> Result<i32, QLParseError> {
-        match self.peek().map(|t| &t.token_type) {
-            Some(TokenType::Literal(LiteralToken::Int(n))) => {
+        match self.peek() {
+            Some(Token::Literal(LiteralToken::Int(n))) => {
                 self.advance();
                 Ok(*n)
             }
@@ -610,8 +606,8 @@ impl<'a> Parser<'a> {
     }
 
     fn expect_literal_string(&mut self) -> Result<String, QLParseError> {
-        match self.peek().map(|t| &t.token_type) {
-            Some(TokenType::Literal(LiteralToken::String(s))) => {
+        match self.peek() {
+            Some(Token::Literal(LiteralToken::String(s))) => {
                 self.advance();
                 Ok(s.clone())
             }
@@ -619,9 +615,9 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn expect_token(&mut self, expected: TokenType) -> Result<TokenType, QLParseError> {
+    fn expect_token(&mut self, expected: Token) -> Result<Token, QLParseError> {
         match self.peek() {
-            Some(tok) if tok.token_type == expected => {
+            Some(&tok) if *tok == expected => {
                 self.advance();
                 Ok(expected)
             }
@@ -630,8 +626,8 @@ impl<'a> Parser<'a> {
     }
 
     fn expect_operator(&mut self, expected: Operator) -> Result<Operator, QLParseError> {
-        match self.peek().map(|t| &t.token_type) {
-            Some(TokenType::Operator(op)) if *op == expected => {
+        match self.peek() {
+            Some(Token::Operator(op)) if *op == expected => {
                 self.advance();
                 Ok(expected)
             }
@@ -641,11 +637,11 @@ impl<'a> Parser<'a> {
 
     /// Expects that the next token is an identifier (either an identifier or a quoted identifier)
     fn expect_ident(&mut self) -> Result<&str, QLParseError> {
-        match self.peek().map(|t| &t.token_type) {
-            Some(TokenType::Identifier(_)) | Some(TokenType::QuotedIdentifier(_)) => {
+        match self.peek() {
+            Some(Token::Identifier(_)) | Some(Token::QuotedIdentifier(_)) => {
                 let tok = self.advance().unwrap();
-                match &tok.token_type {
-                    TokenType::Identifier(ident) | TokenType::QuotedIdentifier(ident) => Ok(ident),
+                match &tok {
+                    Token::Identifier(ident) | Token::QuotedIdentifier(ident) => Ok(ident),
                     _ => unreachable!(),
                 }
             }
@@ -654,8 +650,8 @@ impl<'a> Parser<'a> {
     }
 
     fn expect_keyword(&mut self, expected_kw: Keyword) -> Result<(), QLParseError> {
-        match self.peek().map(|t| &t.token_type) {
-            Some(TokenType::Keyword(keyword)) if *keyword == expected_kw => {
+        match self.peek() {
+            Some(Token::Keyword(keyword)) if *keyword == expected_kw => {
                 self.advance();
                 Ok(())
             }
@@ -665,7 +661,7 @@ impl<'a> Parser<'a> {
 
     fn expect_end_of_query(&mut self) -> Result<(), QLParseError> {
         match self.peek() {
-            Some(tok) if tok.token_type == TokenType::SemiColon => {
+            Some(&tok) if *tok == Token::SemiColon => {
                 self.advance();
                 Ok(())
             }
@@ -675,8 +671,8 @@ impl<'a> Parser<'a> {
     }
 
     fn expect_one_of_keywords(&mut self, kws: &[Keyword]) -> Result<Keyword, QLParseError> {
-        match self.peek().map(|t| &t.token_type) {
-            Some(TokenType::Keyword(keyword)) if kws.contains(keyword) => {
+        match self.peek() {
+            Some(Token::Keyword(keyword)) if kws.contains(keyword) => {
                 let kw = *keyword;
                 self.advance();
                 Ok(kw)
@@ -685,12 +681,12 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn expect_one_of_tokens(&mut self, expected: &[TokenType]) -> Result<TokenType, QLParseError> {
+    fn expect_one_of_tokens(&mut self, expected: &[Token]) -> Result<Token, QLParseError> {
         match self.peek() {
-            Some(tok) if expected.iter().any(|e| *e == tok.token_type) => {
-                let tt = tok.token_type.clone();
+            Some(&tok) if expected.iter().any(|e| e == tok) => {
+                let tok = tok.clone();
                 self.advance();
-                Ok(tt)
+                Ok(tok)
             }
             _ => Err(QLParseError::ExpectedOneOfTokens(
                 expected.to_vec(),
@@ -703,7 +699,7 @@ impl<'a> Parser<'a> {
     fn peek_is_keyword(&mut self, kws: &[Keyword]) -> bool {
         matches!(
             self.tokens.peek(),
-            Some(tok) if matches!(&tok.token_type, TokenType::Keyword(k) if kws.contains(k))
+            Some(tok) if matches!(&tok, Token::Keyword(k) if kws.contains(k))
         )
     }
 

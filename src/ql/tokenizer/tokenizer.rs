@@ -4,7 +4,7 @@ use strum::IntoEnumIterator;
 
 use crate::ql::{
     tokenizer::errors::SQLTokenizeError,
-    tokenizer::token::{Keyword, LiteralToken, Operator, Token, TokenType},
+    tokenizer::token::{Keyword, LiteralToken, Operator, Token},
 };
 
 /// The tokenizer itself
@@ -34,14 +34,14 @@ impl<'a> Tokenizer<'a> {
         let mut tokens = vec![];
 
         while let Some(tok) = self.get_next_token() {
-            match tok.token_type {
-                TokenType::Illegal(pos) => {
+            match tok {
+                Token::Illegal(pos, _) => {
                     let (line, col) = self.pos_to_line_col(pos).unwrap();
-                    return Err(SQLTokenizeError::IllegalToken(tok.value, line, col));
+                    return Err(SQLTokenizeError::IllegalToken(tok, line, col));
                 }
-                TokenType::Unknown(pos) => {
+                Token::Unknown(pos, _) => {
                     let (line, col) = self.pos_to_line_col(pos).unwrap();
-                    return Err(SQLTokenizeError::UnknownToken(tok.value, line, col));
+                    return Err(SQLTokenizeError::UnknownToken(tok, line, col));
                 }
                 _ => {}
             }
@@ -84,24 +84,15 @@ impl<'a> Tokenizer<'a> {
                     }
 
                     if let Ok(n) = value.parse::<i32>() {
-                        Some(Token::new(TokenType::Literal(LiteralToken::Int(n)), value))
+                        Some(Token::Literal(LiteralToken::Int(n)))
                     } else if let Ok(n) = value.parse::<i64>() {
-                        Some(Token::new(
-                            TokenType::Literal(LiteralToken::BigInt(n)),
-                            value,
-                        ))
+                        Some(Token::Literal(LiteralToken::BigInt(n)))
                     } else if let Ok(n) = value.parse::<f32>() {
-                        Some(Token::new(
-                            TokenType::Literal(LiteralToken::Float(n)),
-                            value,
-                        ))
+                        Some(Token::Literal(LiteralToken::Float(n)))
                     } else if let Ok(n) = value.parse::<f64>() {
-                        Some(Token::new(
-                            TokenType::Literal(LiteralToken::BigFloat(n)),
-                            value,
-                        ))
+                        Some(Token::Literal(LiteralToken::BigFloat(n)))
                     } else {
-                        Some(Token::new(TokenType::Illegal(self.pos), value))
+                        Some(Token::Illegal(self.pos, value))
                     }
                 }
                 // a keyword, or identifier
@@ -120,10 +111,10 @@ impl<'a> Tokenizer<'a> {
                     // check if it's a keyword
                     let tok_type = Keyword::iter()
                         .find(|k| k.to_string().to_uppercase() == value.to_uppercase())
-                        .map(TokenType::Keyword)
-                        .unwrap_or(TokenType::Identifier(value.clone()));
+                        .map(Token::Keyword)
+                        .unwrap_or(Token::Identifier(value.clone()));
 
-                    Some(Token::new(tok_type, value))
+                    Some(tok_type)
                 }
                 // a string literal
                 '\'' => {
@@ -145,19 +136,16 @@ impl<'a> Tokenizer<'a> {
                         }
                     }
                     if found_end {
-                        Some(Token::new(
-                            TokenType::Literal(LiteralToken::String(value.clone())),
-                            value,
-                        ))
+                        Some(Token::Literal(LiteralToken::String(value)))
                     } else {
-                        Some(Token::new(TokenType::Illegal(self.pos), value))
+                        Some(Token::Illegal(self.pos, value))
                     }
                 }
                 // a quoted identifier
                 '"' => {
                     self.advance();
-                    let mut value = String::new();
-                    let mut found_end = false;
+                    let mut value: String = String::new();
+                    let mut found_end: bool = false;
                     while let Some(&c) = self.chars.peek() {
                         self.advance();
                         if c == '"' {
@@ -173,12 +161,9 @@ impl<'a> Tokenizer<'a> {
                         }
                     }
                     if found_end {
-                        Some(Token::new(
-                            TokenType::QuotedIdentifier(value.clone()),
-                            value,
-                        ))
+                        Some(Token::QuotedIdentifier(value))
                     } else {
-                        Some(Token::new(TokenType::Illegal(self.pos), value))
+                        Some(Token::Illegal(self.pos, value))
                     }
                 }
                 // an operator that starts with a < sign
@@ -187,18 +172,16 @@ impl<'a> Tokenizer<'a> {
                     match self.chars.peek() {
                         Some(&'=') => {
                             self.advance();
-                            Some(Token::new(TokenType::Operator(Operator::Lte), "<="))
+                            Some(Token::Operator(Operator::Lte))
                         }
                         Some(&'>') => {
                             self.advance();
-                            Some(Token::new(TokenType::Operator(Operator::NotEq), "<>"))
+                            Some(Token::Operator(Operator::NotEq))
                         }
-                        Some(&' ') | None => {
-                            Some(Token::new(TokenType::Operator(Operator::Lt), "<"))
-                        }
-                        _ => {
+                        Some(&' ') | None => Some(Token::Operator(Operator::Lt)),
+                        Some(&c) => {
                             self.advance();
-                            Some(Token::new(TokenType::Illegal(self.pos), "<"))
+                            Some(Token::Illegal(self.pos, c.into()))
                         }
                     }
                 }
@@ -208,21 +191,19 @@ impl<'a> Tokenizer<'a> {
                     match self.chars.peek() {
                         Some(&'=') => {
                             self.advance();
-                            Some(Token::new(TokenType::Operator(Operator::Gte), ">="))
+                            Some(Token::Operator(Operator::Gte))
                         }
-                        Some(&' ') | None => {
-                            Some(Token::new(TokenType::Operator(Operator::Gt), ">"))
-                        }
-                        _ => {
+                        Some(&' ') | None => Some(Token::Operator(Operator::Gt)),
+                        Some(&c) => {
                             self.advance();
-                            Some(Token::new(TokenType::Illegal(self.pos), ">"))
+                            Some(Token::Illegal(self.pos, c.into()))
                         }
                     }
                 }
                 // the = operator
                 '=' => {
                     self.advance();
-                    Some(Token::new(TokenType::Operator(Operator::Equals), "="))
+                    Some(Token::Operator(Operator::Equals))
                 }
                 // an operator that starts with a !
                 '!' => {
@@ -230,15 +211,17 @@ impl<'a> Tokenizer<'a> {
                     match self.chars.peek() {
                         Some(&'=') => {
                             self.advance();
-                            Some(Token::new(TokenType::Operator(Operator::NotEq), "!="))
+                            Some(Token::Operator(Operator::NotEq))
                         }
-                        _ => Some(Token::new(TokenType::Illegal(self.pos), "!")),
+                        // TODO: This should be an error, as we do expect a following token
+                        None => None,
+                        Some(&c) => Some(Token::Illegal(self.pos, c.into())),
                     }
                 }
                 // an operator that starts with a + sign
                 '+' => {
                     self.advance();
-                    Some(Token::new(TokenType::Operator(Operator::Plus), "+"))
+                    Some(Token::Operator(Operator::Plus))
                 }
                 // an operator that starts with a - sign
                 '-' => {
@@ -254,13 +237,13 @@ impl<'a> Tokenizer<'a> {
                             }
                             self.get_next_token()
                         }
-                        _ => Some(Token::new(TokenType::Operator(Operator::Minus), "-")),
+                        _ => Some(Token::Operator(Operator::Minus)),
                     }
                 }
                 // a * operator
                 '*' => {
                     self.advance();
-                    Some(Token::new(TokenType::Operator(Operator::Star), "*"))
+                    Some(Token::Operator(Operator::Star))
                 }
                 // an operator that starts with a / sign, or some kind of comment
                 '/' => {
@@ -288,38 +271,38 @@ impl<'a> Tokenizer<'a> {
                             }
                             self.get_next_token()
                         }
-                        _ => Some(Token::new(TokenType::Operator(Operator::Divide), "/")),
+                        _ => Some(Token::Operator(Operator::Divide)),
                     }
                 }
                 // Modulus
                 '%' => {
                     self.advance();
-                    Some(Token::new(TokenType::Operator(Operator::Modulus), "%"))
+                    Some(Token::Operator(Operator::Modulus))
                 }
                 // semicolon
                 ';' => {
                     self.advance();
-                    Some(Token::new(TokenType::SemiColon, ";"))
+                    Some(Token::SemiColon)
                 }
                 // left parenthesis
                 '(' => {
                     self.advance();
-                    Some(Token::new(TokenType::LParen, "("))
+                    Some(Token::LParen)
                 }
                 // right parenthesis
                 ')' => {
                     self.advance();
-                    Some(Token::new(TokenType::RParen, ")"))
+                    Some(Token::RParen)
                 }
                 // comma
                 ',' => {
                     self.advance();
-                    Some(Token::new(TokenType::Comma, ","))
+                    Some(Token::Comma)
                 }
                 // anything else
-                _ => {
+                c => {
                     self.advance();
-                    Some(Token::new(TokenType::Unknown(self.pos), c))
+                    Some(Token::Unknown(self.pos, c.into()))
                 }
             },
             None => None,

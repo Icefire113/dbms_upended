@@ -1,11 +1,13 @@
 use thiserror::Error;
 
+use crate::ql::tokenizer::token::Token;
+
 /// Represents an error that occurs while tokenizing
 #[derive(Debug, Error)]
 pub enum SQLTokenizeError {
-    #[error("Illegal token `{0}` at: {1}:{2}")]
-    IllegalToken(String, usize, usize),
+    #[error("Illegal token `{:?}` at: {}:{}", 0, 1, 2)]
+    IllegalToken(Token, usize, usize),
 
-    #[error("Unknown token `{0}` at position: {1}:{2}")]
-    UnknownToken(String, usize, usize),
+    #[error("Unknown token `{:?}` at position: {}:{}", 0, 1, 2)]
+    UnknownToken(Token, usize, usize),
 }

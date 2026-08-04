@@ -2,7 +2,7 @@ use thiserror::Error;
 
 use crate::ql::{
     parser::expression::error::TokenToOperatorError,
-    tokenizer::token::{Keyword, Operator, TokenType},
+    tokenizer::token::{Keyword, Operator, Token},
 };
 
 #[derive(Debug, Error)]
@@ -17,19 +17,19 @@ pub enum QLParseError {
     ExpectedKeyword(Keyword, usize),
 
     #[error("Unknown token {:?} at token position {}", _0, _1)]
-    UnknownToken(TokenType, usize),
+    UnknownToken(Token, usize),
 
     #[error("Illegal token {:?} at token position {}", _0, _1)]
-    IllegalToken(TokenType, usize),
+    IllegalToken(Token, usize),
 
     #[error("Expected identifier at token position {}", _0)]
     ExpectedIdent(usize),
 
     #[error("Expected one of tokens {:?} at token position {}", _0, _1)]
-    ExpectedOneOfTokens(Vec<TokenType>, usize),
+    ExpectedOneOfTokens(Vec<Token>, usize),
 
     #[error("Expected token {:?} at token position {}", _0, _1)]
-    ExpectedToken(TokenType, usize),
+    ExpectedToken(Token, usize),
 
     #[error("Keyword {:?} is not a valid column type", _0)]
     KeywordIsNotColumnType(Keyword),

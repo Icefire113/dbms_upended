@@ -1,6 +1,6 @@
 use crate::ql::{
     parser::expression::error::TokenToOperatorError,
-    tokenizer::token::{Keyword, Operator, TokenType},
+    tokenizer::token::{Keyword, Operator, Token},
 };
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -12,14 +12,14 @@ pub enum UnaryOp {
     IsNotNull,
 }
 
-impl TryFrom<TokenType> for UnaryOp {
+impl TryFrom<Token> for UnaryOp {
     type Error = TokenToOperatorError;
 
-    fn try_from(value: TokenType) -> Result<Self, Self::Error> {
+    fn try_from(value: Token) -> Result<Self, Self::Error> {
         match value {
-            TokenType::Operator(Operator::Minus) => Ok(UnaryOp::Minus),
-            TokenType::Operator(Operator::Plus) => Ok(UnaryOp::Plus),
-            TokenType::Keyword(Keyword::Not) => Ok(UnaryOp::Not),
+            Token::Operator(Operator::Minus) => Ok(UnaryOp::Minus),
+            Token::Operator(Operator::Plus) => Ok(UnaryOp::Plus),
+            Token::Keyword(Keyword::Not) => Ok(UnaryOp::Not),
             other => Err(TokenToOperatorError::InvalidOperator(other.clone())),
         }
     }
