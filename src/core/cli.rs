@@ -48,7 +48,7 @@ fn build_cli() -> clap::Command {
         .arg(
             Arg::new("generator")
                 .long("generate")
-                .long_help("Used to generate shell completions, can be used like so: `dbms_upended --generate bash > /usr/share/bash-completion/completions/dbms_upended.bash`")
+                .long_help("Used to generate shell completions, can be used like so: `dbms_upended --generate bash >> ~/.bashrc`")
                 .action(ArgAction::Set)
                 .value_parser(value_parser!(Shell)),
         )
