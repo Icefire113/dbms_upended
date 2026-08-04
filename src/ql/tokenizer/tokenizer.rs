@@ -16,6 +16,8 @@ pub struct Tokenizer<'a> {
     chars: Peekable<Chars<'a>>,
     /// The current position
     pos: usize,
+    /// A cache of newline indexes for calculating line and column numbers from char positions
+    newlines: Option<Vec<usize>>,
 }
 
 impl<'a> Tokenizer<'a> {
@@ -26,6 +28,7 @@ impl<'a> Tokenizer<'a> {
             num_chars: input.chars().count(),
             chars: input.chars().peekable(),
             pos: 0,
+            newlines: None,
         }
     }
 
@@ -36,11 +39,11 @@ impl<'a> Tokenizer<'a> {
         while let Some(tok) = self.get_next_token() {
             match tok {
                 Token::Illegal(pos, _) => {
-                    let (line, col) = self.pos_to_line_col(pos).unwrap();
+                    let (line, col) = self.char_pos_to_line_col(pos).unwrap();
                     return Err(SQLTokenizeError::IllegalToken(tok, line, col));
                 }
                 Token::Unknown(pos, _) => {
-                    let (line, col) = self.pos_to_line_col(pos).unwrap();
+                    let (line, col) = self.char_pos_to_line_col(pos).unwrap();
                     return Err(SQLTokenizeError::UnknownToken(tok, line, col));
                 }
                 _ => {}
@@ -309,20 +312,21 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
-    /// Turns a token position into a line and column number of the underlying input string
+    /// Turns a char position into a line and column number of the underlying input string
     ///
     /// If the position is out of bounds, returns None, otherwise returns the line and column number
-    fn pos_to_line_col(&self, pos: usize) -> Option<(usize, usize)> {
+    fn char_pos_to_line_col(&mut self, pos: usize) -> Option<(usize, usize)> {
         if pos > self.input.len() {
             return None;
         }
 
-        let newlines: Vec<usize> = self
-            .input
-            .bytes()
-            .enumerate()
-            .filter_map(|(i, b)| (b == b'\n').then_some(i))
-            .collect();
+        let newlines: &Vec<usize> = self.newlines.get_or_insert_with(|| {
+            self.input
+                .bytes()
+                .enumerate()
+                .filter_map(|(i, b)| (b == b'\n').then_some(i))
+                .collect()
+        });
 
         let line = newlines.partition_point(|&i| i < pos);
 
