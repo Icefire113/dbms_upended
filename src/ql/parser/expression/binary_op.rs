@@ -44,8 +44,52 @@ impl BinaryApply<Literal> for BinaryOp {
                 (Literal::Bool(l), Literal::Bool(r)) => Ok(Literal::Bool(l || r)),
                 (l, r) => Err(BinaryOperatorApplyError::IncompatibleLiterals(l, r, *self)),
             },
-            Self::Plus => todo!(),
-            Self::Minus => todo!(),
+            Self::Plus => match (l, r) {
+                (Literal::Int(l), Literal::Int(r)) => Ok(Literal::Int(l + r)),
+                (Literal::Int(l), Literal::BigInt(r)) => Ok(Literal::BigInt(l as i64 + r)),
+                (Literal::Int(l), Literal::Float(r)) => Ok(Literal::Float(l as f32 + r)),
+                (Literal::Int(l), Literal::BigFloat(r)) => Ok(Literal::BigFloat(l as f64 + r)),
+                (Literal::BigInt(l), Literal::Int(r)) => Ok(Literal::BigInt(l + r as i64)),
+                (Literal::BigInt(l), Literal::BigInt(r)) => Ok(Literal::BigInt(l + r)),
+                (Literal::BigInt(l), Literal::Float(r)) => {
+                    Ok(Literal::BigFloat(l as f64 + r as f64))
+                }
+                (Literal::BigInt(l), Literal::BigFloat(r)) => Ok(Literal::BigFloat(l as f64 + r)),
+                (Literal::Float(l), Literal::Int(r)) => Ok(Literal::Float(l + r as f32)),
+                (Literal::Float(l), Literal::BigInt(r)) => {
+                    Ok(Literal::BigFloat(l as f64 + r as f64))
+                }
+                (Literal::Float(l), Literal::Float(r)) => Ok(Literal::Float(l + r)),
+                (Literal::Float(l), Literal::BigFloat(r)) => Ok(Literal::BigFloat(l as f64 + r)),
+                (Literal::BigFloat(l), Literal::Int(r)) => Ok(Literal::BigFloat(l + r as f64)),
+                (Literal::BigFloat(l), Literal::BigInt(r)) => Ok(Literal::BigFloat(l + r as f64)),
+                (Literal::BigFloat(l), Literal::Float(r)) => Ok(Literal::BigFloat(l + r as f64)),
+                (Literal::BigFloat(l), Literal::BigFloat(r)) => Ok(Literal::BigFloat(l + r)),
+                (l, r) => Err(BinaryOperatorApplyError::IncompatibleLiterals(l, r, *self)),
+            },
+            Self::Minus => match (l, r) {
+                (Literal::Int(l), Literal::Int(r)) => Ok(Literal::Int(l - r)),
+                (Literal::Int(l), Literal::BigInt(r)) => Ok(Literal::BigInt(l as i64 - r)),
+                (Literal::Int(l), Literal::Float(r)) => Ok(Literal::Float(l as f32 - r)),
+                (Literal::Int(l), Literal::BigFloat(r)) => Ok(Literal::BigFloat(l as f64 - r)),
+                (Literal::BigInt(l), Literal::Int(r)) => Ok(Literal::BigInt(l - r as i64)),
+                (Literal::BigInt(l), Literal::BigInt(r)) => Ok(Literal::BigInt(l - r)),
+                (Literal::BigInt(l), Literal::Float(r)) => {
+                    Ok(Literal::BigFloat(l as f64 - r as f64))
+                }
+                (Literal::BigInt(l), Literal::BigFloat(r)) => Ok(Literal::BigFloat(l as f64 - r)),
+                (Literal::Float(l), Literal::Int(r)) => Ok(Literal::Float(l - r as f32)),
+                (Literal::Float(l), Literal::BigInt(r)) => {
+                    Ok(Literal::BigFloat(l as f64 - r as f64))
+                }
+                (Literal::Float(l), Literal::Float(r)) => Ok(Literal::Float(l - r)),
+                (Literal::Float(l), Literal::BigFloat(r)) => Ok(Literal::BigFloat(l as f64 - r)),
+                (Literal::BigFloat(l), Literal::Int(r)) => Ok(Literal::BigFloat(l - r as f64)),
+                (Literal::BigFloat(l), Literal::BigInt(r)) => Ok(Literal::BigFloat(l - r as f64)),
+                (Literal::BigFloat(l), Literal::Float(r)) => Ok(Literal::BigFloat(l - r as f64)),
+                (Literal::BigFloat(l), Literal::BigFloat(r)) => Ok(Literal::BigFloat(l - r)),
+                (l, r) => Err(BinaryOperatorApplyError::IncompatibleLiterals(l, r, *self)),
+            },
             Self::Mul => todo!(),
             Self::Div => todo!(),
             Self::Mod => todo!(),
