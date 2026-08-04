@@ -70,6 +70,7 @@ impl TryFrom<Token> for BinaryOp {
             Token::Operator(Operator::Star) => Ok(BinaryOp::Mul),
             Token::Operator(Operator::Divide) => Ok(BinaryOp::Div),
             Token::Operator(Operator::Modulus) => Ok(BinaryOp::Mod),
+            Token::Operator(Operator::Pow) => Ok(BinaryOp::Pow),
             Token::Keyword(Keyword::And) => Ok(BinaryOp::And),
             Token::Keyword(Keyword::Or) => Ok(BinaryOp::Or),
             other => Err(TokenToOperatorError::InvalidOperator(other.clone())),

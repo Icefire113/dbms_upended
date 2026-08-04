@@ -42,6 +42,7 @@ pub enum Operator {
     Star,
     Divide,
     Modulus,
+    Pow,
 }
 
 /// Gets the binding power of a given token, used for pratt parsing
@@ -52,6 +53,7 @@ pub fn get_token_bp(op: &Token) -> Option<(u8, u8)> {
             Operator::Lt | Operator::Lte | Operator::Gt | Operator::Gte => Some((7, 8)),
             Operator::Plus | Operator::Minus => Some((9, 10)),
             Operator::Star | Operator::Divide | Operator::Modulus => Some((11, 12)),
+            Operator::Pow => Some((13, 14)),
         },
         Token::Keyword(Keyword::Or) => Some((1, 2)),
         Token::Keyword(Keyword::And) => Some((3, 4)),

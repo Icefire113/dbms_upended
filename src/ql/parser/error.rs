@@ -65,6 +65,6 @@ pub enum QLParseError {
     #[error("Expected operator {:?} at token position {}", _0, _1)]
     ExpectedOperator(Operator, usize),
 
-    #[error("Could not convert token to operator")]
-    TokenToOperatorConversionError(#[from] TokenToOperatorError),
+    #[error("Could not convert token to operator as pos {}", _1)]
+    TokenToOperatorConversionError(#[source] TokenToOperatorError, usize),
 }

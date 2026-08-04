@@ -302,6 +302,11 @@ impl<'a> Tokenizer<'a> {
                     self.advance();
                     Some(Token::Comma)
                 }
+                // pow op
+                '^' => {
+                    self.advance();
+                    Some(Token::Operator(Operator::Pow))
+                }
                 // anything else
                 c => {
                     self.advance();

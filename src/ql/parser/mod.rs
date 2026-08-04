@@ -402,7 +402,10 @@ impl<'a> Parser<'a> {
                 self.advance();
                 root = Expr::BinaryOp {
                     lhs: Box::new(root),
-                    op: op.clone().try_into()?,
+                    op: op
+                        .clone()
+                        .try_into()
+                        .map_err(|e| QLParseError::TokenToOperatorConversionError(e, self.pos))?,
                     rhs: Box::new(self.parse_expr(r_bind_pow)?),
                 }
             } else {
@@ -423,7 +426,9 @@ impl<'a> Parser<'a> {
                 .expect("Token does not have a registered binding power");
             let expr = self.parse_expr(bind_pow)?;
             Ok(Expr::UnaryOp {
-                op: Token::Keyword(Keyword::Not).try_into()?,
+                op: Token::Keyword(Keyword::Not)
+                    .try_into()
+                    .map_err(|e| QLParseError::TokenToOperatorConversionError(e, self.pos))?,
                 expr: Box::new(expr),
             })
         } else if self.expect_operator(Operator::Minus).is_ok() {
@@ -431,7 +436,9 @@ impl<'a> Parser<'a> {
                 .expect("Token does not have a registered binding power");
             let expr = self.parse_expr(bind_pow)?;
             Ok(Expr::UnaryOp {
-                op: Token::Operator(Operator::Minus).try_into()?,
+                op: Token::Operator(Operator::Minus)
+                    .try_into()
+                    .map_err(|e| QLParseError::TokenToOperatorConversionError(e, self.pos))?,
                 expr: Box::new(expr),
             })
         } else if self.expect_token(Token::LParen).is_ok() {
